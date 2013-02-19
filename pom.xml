@@ -26,10 +26,9 @@
 				<enabled>false</enabled>
 			</snapshots>
 		</repository>
-
 		<repository>
-			<id>cloud9</id>
-			<url>http://mvnrepository.com/artifact/edu.umd/cloud9</url>
+			<id>mongo-hadoop-core</id>
+			<url>http://mvnrepository.com/artifact/org.mongodb/mongo-hadoop-core</url>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
@@ -55,7 +54,16 @@
 			<artifactId>mahout-core</artifactId>
 			<version>0.7</version>
 		</dependency>
-
+		<dependency>
+			<groupId>org.apache.mahout</groupId>
+			<artifactId>mahout-math</artifactId>
+			<version>0.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongo-hadoop-core</artifactId>
+			<version>1.0.0</version>
+		</dependency>
 		<dependency>
 			<groupId>com.googlecode.json-simple</groupId>
 			<artifactId>json-simple</artifactId>
@@ -69,11 +77,5 @@
 			<version>2.2.2</version>
 			<scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>edu.umd</groupId>
-			<artifactId>cloud9</artifactId>
-			<version>1.3.0-beta</version>
-		</dependency>
-
 	</dependencies>
 </project>

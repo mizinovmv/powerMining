@@ -39,6 +39,13 @@ public class DataReader {
 	private static final Logger log = LoggerFactory.getLogger(KnnDriver.class);
 
 	public static void main(String[] args) throws Exception {
+		final Configuration conf = new Configuration();
+        MongoConfigUtil.setInputURI( conf, "mongodb://localhost/test.in" );
+        MongoConfigUtil.setOutputURI( conf, "mongodb://localhost/test.out" );
+        System.out.println( "Conf: " + conf );
+
+        final Job job = new Job( conf, "word count" );
+        
 		Configuration config = HBaseConfiguration.create();
 		Job job = new Job(config, "ExampleReadWrite");
 		job.setJarByClass(DataReader.class); // class that contains mapper
@@ -65,7 +72,7 @@ public class DataReader {
 			throw new IOException("error with job!");
 		}
 	}
-
+	
 	// public static void main(String[] args) throws Exception {
 	// if (args.length != 2) {
 	// log.error("Usage: DataReader <file_name> <out>");

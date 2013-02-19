@@ -1,25 +1,14 @@
 package org.mpei.knn.kdtree.tools;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
 
 import org.apache.hadoop.io.BooleanWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.io.serializer.SerializationFactory;
-import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
-
-import edu.umd.cloud9.io.JSONObjectWritable;
 
 public class KDNodeWritable implements Writable {
 	private KDNode node;

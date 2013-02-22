@@ -1,5 +1,6 @@
 package org.mpei.kmeans;
 
+import java.io.IOException;
 import java.util.Date;
 
 import org.apache.hadoop.conf.Configuration;
@@ -14,9 +15,9 @@ import org.apache.hadoop.util.ToolRunner;
 import org.mpei.json.JsonInputFormat;
 
 public class KMeansDriver {
-	
-	public static void main(String[] args) throws Exception {
-		
+
+	public static int start(String[] args) throws IOException,
+			ClassNotFoundException, InterruptedException {
 		// config a job and start it
 		Configuration conf = new Configuration();
 		Job job = new Job(conf, "KMeans");
@@ -43,7 +44,15 @@ public class KMeansDriver {
 		System.out.println("The job took "
 				+ (end_time.getTime() - startTime.getTime()) / 1000
 				+ " seconds.");
-		
-		System.exit(res);
+		return res;
+	}
+
+	public static void main(String[] args) {
+		try {
+			System.exit(start(args));
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+
 	}
 }

@@ -1,4 +1,4 @@
-package org.mpei.tools;
+package org.mpei.tools.data;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -88,21 +88,28 @@ public class CoolgaDataParser {
 						List<String> list = new ArrayList<String>(
 								Arrays.asList(splitString));
 						list.removeAll(Arrays.asList("", null));
-						int j = 0;
-						for (String attr : list) {
-							System.out.println(String.valueOf(j) + attr);
-							j++;
+						String tmp = list.get(2);
+						if(tmp.length() == 0 && tmp.equals("Without Abstract")) {
+							continue;
 						}
+//						int j = 0;
+//						for (String attr : list) {
+//							System.out.println(String.valueOf(j) + attr);
+//							j++;
+//						}
 						Element docElement = document
 								.createElement(TAG_DOCUMENT);
 						rootElement.appendChild(docElement);
 						int i = 0;
 						for (String tag : tags) {
-							System.out.println(splitString[i]);
+//							System.out.println(splitString[i]);
+							String line = list.get(i);
 							Element element = document.createElement(tag);
 							docElement.appendChild(element);
+							String pattern = "(^.*;;)(.*)";
+//							System.out.println(line.replaceAll(pattern, "$2")); 
 							element.appendChild(document
-									.createTextNode(list.get(i).replace("Abstract;;", "")));
+									.createTextNode(line.replaceAll(pattern, "$2")));
 							++i;
 						}
 					}
@@ -134,16 +141,5 @@ public class CoolgaDataParser {
 			}
 			System.out.println("File saved!");
 		}
-
-		//
-		// for (int i = 0; i < filename.length; i++) {
-		// listFilenames = filename[i];
-		// }
-		//
-		// // System.out.print(listFilenames);
-		//
-		// fr = new FileReader(listFilenames);
-		// br = new BufferedReader(fr);
-		// Scanner scan = new Scanner(br);
 	}
 }

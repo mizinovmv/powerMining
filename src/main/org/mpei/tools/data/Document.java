@@ -9,6 +9,8 @@ import org.apache.hadoop.io.Writable;
 
 public class Document implements Writable {
 
+	private static final String DEFAULT_FIELD = "undefined";
+
 	public Document() {
 	}
 
@@ -21,11 +23,11 @@ public class Document implements Writable {
 		this.annotation = annotation;
 	}
 
-	String name = "undefined";
-	String className = "undefined";
-	String authors = "undefined";
-	String year = "undefined";
-	String annotation = "undefined";
+	String name = DEFAULT_FIELD;
+	String className = DEFAULT_FIELD;
+	String authors = DEFAULT_FIELD;
+	String year = DEFAULT_FIELD;
+	String annotation = DEFAULT_FIELD;
 
 	public void write(DataOutput out) throws IOException {
 		new Text(name).write(out);

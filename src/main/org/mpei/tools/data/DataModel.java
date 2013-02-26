@@ -1,7 +1,9 @@
 package org.mpei.tools.data;
 
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,10 +38,25 @@ public class DataModel implements Writable {
 	 */
 	public DataModel(String[] labels) {
 		for (String label : labels) {
-			values.put(new Text(label),new DocumentArrayWritable());
+			values.put(new Text(label), new DocumentArrayWritable());
 		}
 	}
-
+	
+	public static DataModel read(String path) {
+		DataModel model = null;
+		try {
+			FileInputStream fstream = new FileInputStream(path);
+			DataInputStream in = new DataInputStream(fstream);
+			model = new DataModel();
+			model.readFields(in);
+//			log.info(model.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		return model;
+	}
+	
 	/**
 	 * add tokens for label
 	 * 
@@ -62,19 +79,30 @@ public class DataModel implements Writable {
 	 *            tokens for label
 	 */
 	public void addDocuments(Text label, Document[] docs) {
-		DocumentArrayWritable arrayLabel = (DocumentArrayWritable)values.get(label);
+		DocumentArrayWritable arrayLabel = (DocumentArrayWritable) values
+				.get(label);
 		synchronized (values) {
 			arrayLabel.set(docs);
 		}
 	}
+
 	public String[] getLabels() {
-		return values.keySet().toArray(new String[0]);
+		String[] result = new String[values.keySet().size()];
+		int i = 0;
+		for (Writable value : values.keySet()) {
+			if (value instanceof Text) {
+				Text txt = (Text) value;
+				result[i] = txt.toString();
+			}
+			++i;
+		}
+		return result;
 	}
-	
-	public Writable getDocuments(String key) {
-		return values.get(key);
+
+	public DocumentArrayWritable getDocuments(String key) {
+		return (DocumentArrayWritable)values.get(new Text(key));
 	}
-	
+
 	/**
 	 * write
 	 * 
@@ -92,21 +120,17 @@ public class DataModel implements Writable {
 	 *            in source
 	 */
 	public void readFields(DataInput in) throws IOException {
-		try {
-			values.readFields(in);
-		} catch (Exception e) {
-
-		}     
+		values.readFields(in);
 	}
-	
+
 	/**
 	 * String description
-	 *            
+	 * 
 	 */
 	@Override
 	public String toString() {
 		StringBuilder strBuilder = new StringBuilder();
-		for(Map.Entry<Writable, Writable> value : values.entrySet()) {
+		for (Map.Entry<Writable, Writable> value : values.entrySet()) {
 			strBuilder.append(value.getKey().toString());
 			strBuilder.append("\n");
 			strBuilder.append(value.getValue().toString());

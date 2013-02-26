@@ -91,19 +91,6 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 		return builder.toString();
 	}
 	
-	public DataModel read(String path) {
-		try {
-			FileInputStream fstream = new FileInputStream(path);
-			DataInputStream in = new DataInputStream(fstream);
-			model = new DataModel();
-			model.readFields(in);
-//			log.info(model.toString());
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-		return model;
-	}
 	
 	public static void main(String[] args) {
 		JsonUrlDataModelBuilder builder = new JsonUrlDataModelBuilder();

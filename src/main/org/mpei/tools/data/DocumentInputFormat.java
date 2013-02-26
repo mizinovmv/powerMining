@@ -40,7 +40,6 @@ public class DocumentInputFormat extends
 		public void initialize(InputSplit split, TaskAttemptContext context)
 				throws IOException, InterruptedException {
 			reader.initialize(split, context);
-
 		}
 
 		@Override

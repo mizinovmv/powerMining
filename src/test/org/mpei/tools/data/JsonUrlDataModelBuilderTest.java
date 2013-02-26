@@ -20,7 +20,7 @@ public class JsonUrlDataModelBuilderTest {
 				path));
 		DataOutputStream out = new DataOutputStream(fstream);
 		model1.write(out);
-		DataModel model2 = builder.read(path);
+		DataModel model2 = DataModel.read(path);
 		assertArrayEquals(model1.getLabels(), model2.getLabels());
 //		assertEquals(model1, model2);
 	}

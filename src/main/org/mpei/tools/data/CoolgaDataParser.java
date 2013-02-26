@@ -4,18 +4,13 @@ import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.apache.commons.beanutils.WrapDynaBean;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -24,7 +19,10 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import com.sun.org.apache.xerces.internal.parsers.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import com.sun.org.apache.xerces.internal.parsers.DOMParser;
 
 public class CoolgaDataParser {
 	public static final String PATH = "/home/work/Dropbox/magistr/Data";
@@ -34,13 +32,61 @@ public class CoolgaDataParser {
 	public static final String TAG_ROOT = "documents";
 	public static final String TAG_DOCUMENT = "document";
 	private static DocumentBuilder docBuilder;
+	private final String[] tags = new String[] { "year", "authors", "title",
+			"content" };
+	private StreamResult result;
 
-	public static void main(String[] args) throws Exception {
+	private void xmlWrite(String className, List<String> list) {
+		String tmp = list.get(2);
+		if (tmp.length() == 0 && tmp.equals("Without Abstract")) {
+			return;
+		}
+		// int j = 0;
+		// for (String attr : list) {
+		// System.out.println(String.valueOf(j) + " "+attr);
+		// j++;
+		// }
+		Document document = docBuilder.newDocument();
+		Element rootElement = document.createElement(TAG_ROOT);
+		document.appendChild(rootElement);
+		Element docElement = document.createElement(TAG_DOCUMENT);
+		rootElement.appendChild(docElement);
+		int i = 0;
+		for (String tag : tags) {
+			// System.out.println(splitString[i]);
+			String line = list.get(i);
+			Element element = document.createElement(tag);
+			docElement.appendChild(element);
+			String pattern = "(^.*;;)(.*)";
+			// System.out.println(line.replaceAll(pattern, "$2"));
+			element.appendChild(document.createTextNode(line.replaceAll(
+					pattern, "$2")));
+			++i;
+		}
+
+	}
+
+	private void toFile() throws Exception {
+		// write the content into xml file
+		TransformerFactory transformerFactory = TransformerFactory
+				.newInstance();
+		Transformer transformer = null;
+		try {
+			transformer = transformerFactory.newTransformer();
+//			DOMSource source = new DOMSource(document);
+			// Output to console for testing
+			// StreamResult result = new StreamResult(System.out);
+//			transformer.transform(source, result);
+		} catch (Exception e) {
+			throw e;
+		}
+	}
+
+	public void parse() {
 		File directory = new File(CoolgaDataParser.PATH);
 		File[] classNames = directory.listFiles();
 		DOMParser domParser = new DOMParser();
 
-		String[] tags = new String[] { "year", "authors", "title", "content" };
 		StringBuilder builder = new StringBuilder();
 		String tagString = null;
 		builder.append(tags[0]);
@@ -66,10 +112,6 @@ public class CoolgaDataParser {
 			});
 			System.out.println(className.getName());
 
-			Document document = docBuilder.newDocument();
-			Element rootElement = document.createElement(TAG_ROOT);
-			document.appendChild(rootElement);
-
 			for (File year : years) {
 				System.out.println(year);
 				DataInputStream in = null;
@@ -78,6 +120,8 @@ public class CoolgaDataParser {
 					in = new DataInputStream(fstream);
 					BufferedReader br = new BufferedReader(
 							new InputStreamReader(in));
+					result = new StreamResult(new File("coolga/"
+							+ className.getName().replace(" ", "_") + ".xml"));
 
 					String strLine = null;
 					while ((strLine = br.readLine()) != null) {
@@ -88,31 +132,12 @@ public class CoolgaDataParser {
 						List<String> list = new ArrayList<String>(
 								Arrays.asList(splitString));
 						list.removeAll(Arrays.asList("", null));
-						String tmp = list.get(2);
-						if(tmp.length() == 0 && tmp.equals("Without Abstract")) {
-							continue;
-						}
-//						int j = 0;
-//						for (String attr : list) {
-//							System.out.println(String.valueOf(j) + attr);
-//							j++;
-//						}
-						Element docElement = document
-								.createElement(TAG_DOCUMENT);
-						rootElement.appendChild(docElement);
-						int i = 0;
-						for (String tag : tags) {
-//							System.out.println(splitString[i]);
-							String line = list.get(i);
-							Element element = document.createElement(tag);
-							docElement.appendChild(element);
-							String pattern = "(^.*;;)(.*)";
-//							System.out.println(line.replaceAll(pattern, "$2")); 
-							element.appendChild(document
-									.createTextNode(line.replaceAll(pattern, "$2")));
-							++i;
-						}
+
+						xmlWrite(className.getName(), list);
+
 					}
+					
+					toFile();
 				} catch (Exception e) {// Catch exception if any
 					System.err.println("Error: " + e.getMessage());
 				} finally {
@@ -123,23 +148,19 @@ public class CoolgaDataParser {
 					}
 				}
 			}
-			// write the content into xml file
-			TransformerFactory transformerFactory = TransformerFactory
-					.newInstance();
-			Transformer transformer = null;
-			try {
-				transformer = transformerFactory.newTransformer();
-				DOMSource source = new DOMSource(document);
-				StreamResult result = new StreamResult(new File("coolga/"
-						+ className.getName().replace(" ", "_") + ".xml"));
 
-				// Output to console for testing
-				// StreamResult result = new StreamResult(System.out);
-				transformer.transform(source, result);
-			} catch (Exception e) {
-				throw e;
-			}
 			System.out.println("File saved!");
 		}
+	}
+
+	public static void main(String[] args) {
+		try {
+			CoolgaDataParser parser = new CoolgaDataParser();
+			parser.parse();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+
 	}
 }

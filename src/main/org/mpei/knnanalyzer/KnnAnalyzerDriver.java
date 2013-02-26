@@ -11,6 +11,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.lib.reduce.IntSumReducer;
+import org.json.simple.parser.JSONParser;
 import org.mpei.json.JsonInputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,6 @@ public class KnnAnalyzerDriver {
 		job.setJarByClass(KnnAnalyzerDriver.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(IntWritable.class);
-
 		job.setMapperClass(KnnAnalyzerMapper.class);
 		job.setCombinerClass(IntSumReducer.class);
 		job.setReducerClass(KnnAnalyzerReducer.class);

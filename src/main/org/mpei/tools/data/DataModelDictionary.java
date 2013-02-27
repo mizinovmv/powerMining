@@ -35,7 +35,7 @@ public class DataModelDictionary implements Dictionary {
 			for (Document doc : model.getDocuments(key)) {
 				try {
 					TokenStream stream = analyzer.tokenStream(null,
-							new StringReader(doc.annotation));
+							new StringReader(doc.getContext()));
 					while (stream.incrementToken()) {
 						result.add(stream.getAttribute(CharTermAttribute.class)
 								.toString());

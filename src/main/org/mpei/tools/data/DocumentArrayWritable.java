@@ -11,7 +11,7 @@ public class DocumentArrayWritable extends ArrayWritable implements
 		Iterable<Document> {
 
 	public DocumentArrayWritable() {
-		super(Document.class);
+		super(DefaultDocument.class);
 	}
 
 	public int size() {

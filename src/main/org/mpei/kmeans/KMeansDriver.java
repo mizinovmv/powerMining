@@ -15,7 +15,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.mpei.json.JsonInputFormat;
 
 public class KMeansDriver {
-
+	
 	public static int start(String[] args) throws IOException,
 			ClassNotFoundException, InterruptedException {
 		// config a job and start it
@@ -51,6 +51,7 @@ public class KMeansDriver {
 		try {
 			System.exit(start(args));
 		} catch (Exception e) {
+			e.printStackTrace();
 			System.out.println(e.getMessage());
 		}
 

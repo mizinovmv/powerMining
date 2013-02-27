@@ -15,7 +15,12 @@ public class DocumentSplit extends InputSplit implements Writable {
 
 	public DocumentSplit() {
 	}
-		
+
+	public DocumentSplit(Document document, String[] hosts) {
+		this.document = document;
+		this.hosts = hosts;
+	}
+
 	@Override
 	public long getLength() throws IOException, InterruptedException {
 		return length;
@@ -37,9 +42,9 @@ public class DocumentSplit extends InputSplit implements Writable {
 	}
 
 	public void readFields(DataInput in) throws IOException {
-		Document doc = new Document();
-		doc.readFields(in);
-		document = doc;
+		// Document doc = new Document();
+		document.readFields(in);
+		// document = doc;
 		start = in.readLong();
 		length = in.readLong();
 		hosts = null;

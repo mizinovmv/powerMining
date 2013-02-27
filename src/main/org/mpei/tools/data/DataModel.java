@@ -5,15 +5,11 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Map;
 
-import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.util.ReflectionUtils;
 
 /**
  * Data model with labels and tokens
@@ -41,7 +37,7 @@ public class DataModel implements Writable {
 			values.put(new Text(label), new DocumentArrayWritable());
 		}
 	}
-	
+
 	public static DataModel read(String path) {
 		DataModel model = null;
 		try {
@@ -49,14 +45,14 @@ public class DataModel implements Writable {
 			DataInputStream in = new DataInputStream(fstream);
 			model = new DataModel();
 			model.readFields(in);
-//			log.info(model.toString());
+			// log.info(model.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
 		return model;
 	}
-	
+
 	/**
 	 * add tokens for label
 	 * 
@@ -100,7 +96,7 @@ public class DataModel implements Writable {
 	}
 
 	public DocumentArrayWritable getDocuments(String key) {
-		return (DocumentArrayWritable)values.get(new Text(key));
+		return (DocumentArrayWritable) values.get(new Text(key));
 	}
 
 	/**

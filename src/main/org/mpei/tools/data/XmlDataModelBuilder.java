@@ -111,15 +111,15 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 						if (docNode == null) {
 							continue;
 						}
-						org.mpei.tools.data.Document docData = new org.mpei.tools.data.Document();
-						docData.annotation = docNode.getTextContent();
-						docData.year = eElement.getElementsByTagName(TAG_YEAR)
-								.item(0).getTextContent();
-						docData.authors = eElement
+						org.mpei.tools.data.Document docData = new DefaultDocument();
+						docData.setContext(docNode.getTextContent());
+						docData.setYear(eElement.getElementsByTagName(TAG_YEAR)
+								.item(0).getTextContent());
+						docData.setAuthors(eElement
 								.getElementsByTagName(TAG_AUTHORS).item(0)
-								.getTextContent();
-						docData.name = eElement.getElementsByTagName(TAG_TITLE)
-								.item(0).getTextContent();
+								.getTextContent());
+						docData.setName(eElement.getElementsByTagName(TAG_TITLE)
+								.item(0).getTextContent());
 						docs[i] = docData;
 					}
 				}

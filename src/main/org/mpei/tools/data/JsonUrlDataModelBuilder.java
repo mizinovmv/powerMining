@@ -21,7 +21,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 public class JsonUrlDataModelBuilder implements DataModelBuilder {
-	private static final Logger log = LoggerFactory
+	private static final Logger LOG = LoggerFactory
 			.getLogger(JsonUrlDataModelBuilder.class);
 	private static final String TAG_LABEL = "name";
 	private static final String TAG_ANNOTATION = "annotation";
@@ -56,10 +56,10 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 				for (JsonElement attr : attrsJson) {
 					if (attr.isJsonObject()) {
 						JsonObject attrObj = (JsonObject) attr;
-						Document doc = new Document();
-						doc.annotation = attrObj.get(TAG_ANNOTATION).toString();
-						doc.name = attrObj.get(TAG_LABEL).toString();
-						doc.className = label;
+						Document doc = new DefaultDocument();
+						doc.setContext(attrObj.get(TAG_ANNOTATION).toString());
+						doc.setName(attrObj.get(TAG_LABEL).toString());
+						doc.setClassName(label);
 						docs[i] = doc;
 						// log.info(attrObj.get(TAG_LABEL).toString());
 						// log.info(attrObj.get(TAG_ANNOTATION).toString());
@@ -103,12 +103,12 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 			model.write(out);
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.error(e.getMessage());
+			LOG.error(e.getMessage());
 		} finally {
 			try {
 				out.close();
 			} catch (Exception e2) {
-				log.error(e2.getMessage());
+				LOG.error(e2.getMessage());
 			}
 		}
 	}

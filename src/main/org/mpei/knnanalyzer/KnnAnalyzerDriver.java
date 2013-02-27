@@ -42,9 +42,6 @@ public class KnnAnalyzerDriver {
 		Path outPath = new Path(job.getJobName());
 		FileOutputFormat.setOutputPath(job, outPath);
 		outPath.getFileSystem(conf).delete(outPath, true);
-		// FsShell shell = new FsShell(conf);
-		// String cosFile = conf.get("org.niubility.kmeans.com", "com.txt");
-		// res = shell.run(new String[] { "-cp", args[1] + "/part*", cosFile });
 
 		Date startTime = new Date();
 		log.info("Job started: " + startTime);

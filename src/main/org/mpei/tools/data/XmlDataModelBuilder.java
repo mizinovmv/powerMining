@@ -112,7 +112,7 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 						if (docNode == null) {
 							continue;
 						}
-						org.mpei.tools.data.Document docData = new GenericDocument<Text>();
+						org.mpei.tools.data.Document docData = new GenericDocument();
 						docData.setContext(new Text(docNode.getTextContent()));
 						docData.setYear(eElement.getElementsByTagName(TAG_YEAR)
 								.item(0).getTextContent());

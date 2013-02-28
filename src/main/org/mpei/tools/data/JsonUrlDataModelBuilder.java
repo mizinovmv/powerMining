@@ -81,7 +81,7 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 				for (JsonElement attr : attrsJson) {
 					if (attr.isJsonObject()) {
 						JsonObject attrObj = (JsonObject) attr;
-						Document doc = new GenericDocument<Text>();
+						Document doc = new GenericDocument();
 						doc.setContext(new Text(attrObj.get(TAG_ANNOTATION).getAsString()));
 						doc.setName(attrObj.get(TAG_LABEL).getAsString());
 						doc.setClassName(label);

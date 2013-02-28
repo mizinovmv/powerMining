@@ -49,7 +49,7 @@ public class DocumentInputFormat extends
 			RecordReader<LongWritable, Document> {
 		private static final Gson GSON = new Gson();
 		private LineRecordReader reader = new LineRecordReader();
-		private final Document doc = new GenericDocument<MapWritable>();
+		private final Document doc = new GenericDocument();
 
 		@Override
 		public void initialize(InputSplit split, TaskAttemptContext context)

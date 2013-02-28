@@ -14,8 +14,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-
-public class GenericDocument<E extends Writable> implements Document {
+/**
+ * Document for all Writable with bug: context type - Text
+ */
+public class GenericDocument implements Document {
 
 	protected static final String DEFAULT_FIELD = "empty";
 	protected String name = DEFAULT_FIELD;

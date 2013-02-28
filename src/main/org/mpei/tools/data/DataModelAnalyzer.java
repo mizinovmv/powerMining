@@ -112,7 +112,7 @@ public class DataModelAnalyzer {
 									numDocs)));
 				}
 				// LOG.info(tokensTfIdf.toString());
-				Document tokenDoc = new GenericDocument<MapWritable>();
+				Document tokenDoc = new GenericDocument();
 				tokenDoc.setContext(tokensTfIdf);
 				docs[i] = tokenDoc;
 				++i;
@@ -151,7 +151,7 @@ public class DataModelAnalyzer {
 		Gson gson = new Gson();
 		for (String key : model.getLabels()) {
 			try {
-				FileOutputStream fstream = new FileOutputStream(new File(key));
+				FileOutputStream fstream = new FileOutputStream(new File(path+"/"+key));
 				DataOutputStream out = new DataOutputStream(fstream);
 				for (Document doc : model.getDocuments(key)) {
 					out.writeUTF(gson.toJson(doc));
@@ -190,6 +190,6 @@ public class DataModelAnalyzer {
 			throw new RuntimeException(e);
 		}
 		// DataModel tokenModel = DataModel.read(pathTokenModel);
-		DataModelAnalyzer.toJSON(tokenModel, "input");
+		DataModelAnalyzer.toJSON(tokenModel, "resources");
 	}
 }

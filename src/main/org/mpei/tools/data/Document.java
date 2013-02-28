@@ -19,8 +19,10 @@ public interface Document extends Writable {
 	void setAuthors(String authors);
 
 	void setYear(String year);
+
+	public Writable getContext();
+
+	public <T extends Writable> void setContext(T context);
 	
-	public String getContext();
-	
-	public void setContext(String context);
+	void clear();
 }

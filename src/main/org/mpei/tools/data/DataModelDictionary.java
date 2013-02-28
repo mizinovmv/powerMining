@@ -22,7 +22,7 @@ public class DataModelDictionary implements Dictionary {
 		this.model = model;
 	}
 
-	class MyAnalyzer extends Analyzer {
+	public static class MyAnalyzer extends Analyzer {
 		public final TokenStream tokenStream(String fieldName, Reader reader) {
 			return new PorterStemFilter(new LowerCaseTokenizer(
 					Version.LUCENE_36, reader));
@@ -35,7 +35,7 @@ public class DataModelDictionary implements Dictionary {
 			for (Document doc : model.getDocuments(key)) {
 				try {
 					TokenStream stream = analyzer.tokenStream(null,
-							new StringReader(doc.getContext()));
+							new StringReader(doc.getContext().toString()));
 					while (stream.incrementToken()) {
 						result.add(stream.getAttribute(CharTermAttribute.class)
 								.toString());

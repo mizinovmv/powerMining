@@ -1,19 +1,25 @@
 package org.mpei.tools.data;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableFactories;
 
 public class DocumentArrayWritable extends ArrayWritable implements
 		Iterable<Document> {
-
 	public DocumentArrayWritable() {
-		super(DefaultDocument.class);
+		super(GenericDocument.class);
 	}
-
+	public DocumentArrayWritable(Class<? extends Writable> valueClass) {
+		super(valueClass);
+	}
 	public int size() {
 		return get().length;
 	}

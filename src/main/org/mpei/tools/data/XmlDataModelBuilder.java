@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tartarus.snowball.ext.PorterStemmer;
@@ -111,15 +112,16 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 						if (docNode == null) {
 							continue;
 						}
-						org.mpei.tools.data.Document docData = new DefaultDocument();
-						docData.setContext(docNode.getTextContent());
+						org.mpei.tools.data.Document docData = new GenericDocument<Text>();
+						docData.setContext(new Text(docNode.getTextContent()));
 						docData.setYear(eElement.getElementsByTagName(TAG_YEAR)
 								.item(0).getTextContent());
 						docData.setAuthors(eElement
 								.getElementsByTagName(TAG_AUTHORS).item(0)
 								.getTextContent());
-						docData.setName(eElement.getElementsByTagName(TAG_TITLE)
-								.item(0).getTextContent());
+						docData.setName(eElement
+								.getElementsByTagName(TAG_TITLE).item(0)
+								.getTextContent());
 						docs[i] = docData;
 					}
 				}

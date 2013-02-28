@@ -7,7 +7,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
@@ -34,7 +36,8 @@ public class DataModel implements Writable {
 	 */
 	public DataModel(String[] labels) {
 		for (String label : labels) {
-			values.put(new Text(label), new DocumentArrayWritable());
+			// values.put(new Text(label), DocumentArrayWritable());
+			values.put(new Text(label), NullWritable.get());
 		}
 	}
 
@@ -74,12 +77,13 @@ public class DataModel implements Writable {
 	 * @param tokens
 	 *            tokens for label
 	 */
-	public void addDocuments(Text label, Document[] docs) {
-		DocumentArrayWritable arrayLabel = (DocumentArrayWritable) values
-				.get(label);
-		synchronized (values) {
-			arrayLabel.set(docs);
-		}
+	public synchronized void addDocuments(Text label, Document[] docs) {
+		DocumentArrayWritable array = new DocumentArrayWritable(docs[0].getClass());
+		array.set(docs);
+		values.put(label, array);
+//		DocumentArrayWritable arrayLabel = (DocumentArrayWritable) values
+//				.get(label);
+//		arrayLabel.set(docs);
 	}
 
 	public String[] getLabels() {
@@ -96,7 +100,7 @@ public class DataModel implements Writable {
 	}
 
 	public DocumentArrayWritable getDocuments(String key) {
-		return (DocumentArrayWritable) values.get(new Text(key));
+		return (DocumentArrayWritable)values.get(new Text(key));
 	}
 
 	/**

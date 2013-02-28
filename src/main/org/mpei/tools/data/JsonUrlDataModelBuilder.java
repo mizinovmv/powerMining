@@ -11,7 +11,10 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +28,26 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 			.getLogger(JsonUrlDataModelBuilder.class);
 	private static final String TAG_LABEL = "name";
 	private static final String TAG_ANNOTATION = "annotation";
-
+	private static final String TAG_LANG = "lang";
 	private DataModel model;
+	private LANG langEnum;
+
+	enum LANG {
+		ENG("en"), RUS("ru");
+		String lang;
+
+		LANG(String lang) {
+			this.lang = lang;
+		}
+	}
+
+	public JsonUrlDataModelBuilder() {
+		langEnum = LANG.ENG;
+	}
+
+	public JsonUrlDataModelBuilder(LANG lang) {
+		this.langEnum = lang;
+	}
 
 	public DataModel build(String path) {
 		try {
@@ -34,43 +55,45 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 			JsonParser parser = new JsonParser();
 			JsonElement labelElement = parser.parse(getClassResult);
 			JsonArray labelsJson = labelElement.getAsJsonArray();
-//			log.info(labelsJson.toString());
-			String[] labels = new String[labelsJson.size()];
-			int i = 0;
+			// log.info(labelsJson.toString());
+			List<String> labels = new ArrayList<String>();
 			for (JsonElement label : labelsJson) {
 				if (label.isJsonObject()) {
 					JsonObject labelObj = (JsonObject) label;
-					labels[i] = labelObj.get(TAG_LABEL).toString();
-					++i;
+					String getTransResult = getUrlResult("http://translate.yandex.net/api/v1/tr.json/detect?text="
+							+ URLEncoder.encode(label.toString(), "UTF-8"));
+					JsonObject transElement = (JsonObject)parser.parse(getTransResult);
+					if (transElement.get(TAG_LANG).getAsString().equals(langEnum.lang)) {
+						labels.add(labelObj.get(TAG_LABEL).getAsString());
+						LOG.info(labelObj.get(TAG_LABEL).toString());
+					}
 				}
 			}
-			model = new DataModel(labels);
+			model = new DataModel(labels.toArray(new String[0]));
 			for (String label : labels) {
 				String getDocumentResult = getUrlResult(path
 						+ "getDocuments?class="
-						+ URLEncoder.encode(label.replace("\"", ""), "UTF-8"));
+						+ URLEncoder.encode(label, "UTF-8"));
 				JsonElement attributesElement = parser.parse(getDocumentResult);
 				JsonArray attrsJson = attributesElement.getAsJsonArray();
 				Document[] docs = new Document[attrsJson.size()];
-				i = 0;
+				int i = 0;
 				for (JsonElement attr : attrsJson) {
 					if (attr.isJsonObject()) {
 						JsonObject attrObj = (JsonObject) attr;
-						Document doc = new DefaultDocument();
-						doc.setContext(attrObj.get(TAG_ANNOTATION).toString());
-						doc.setName(attrObj.get(TAG_LABEL).toString());
+						Document doc = new GenericDocument<Text>();
+						doc.setContext(new Text(attrObj.get(TAG_ANNOTATION).getAsString()));
+						doc.setName(attrObj.get(TAG_LABEL).getAsString());
 						doc.setClassName(label);
 						docs[i] = doc;
-						// log.info(attrObj.get(TAG_LABEL).toString());
-						// log.info(attrObj.get(TAG_ANNOTATION).toString());
-//						log.info(doc.toString());
+//						 LOG.info(doc.toString());
 					}
 					++i;
 				}
 				model.addDocuments(label, docs);
 				// log.info(attrsJson.toString());
 			}
-//			log.info(model.toString());
+			// log.info(model.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
@@ -90,13 +113,13 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 		}
 		return builder.toString();
 	}
-	
-	
+
 	public static void main(String[] args) {
 		JsonUrlDataModelBuilder builder = new JsonUrlDataModelBuilder();
 		DataOutputStream out = null;
 		try {
-			DataModel model = builder.build("https://classification-mizinov.rhcloud.com/api/");
+			DataModel model = builder
+					.build("https://classification-mizinov.rhcloud.com/api/");
 			FileOutputStream fstream = new FileOutputStream(new File(
 					"dataModel"));
 			out = new DataOutputStream(fstream);
@@ -112,6 +135,5 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 			}
 		}
 	}
-
 
 }

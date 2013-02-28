@@ -20,58 +20,36 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.db.DBInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.mpei.knn.KnnDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+
 /**
  * Input format for document text data for classification
  */
-public class DocumentInputFormat extends InputFormat<Text, MapWritable> {
+public class DocumentInputFormat extends
+		FileInputFormat<LongWritable, Document> {
 
 	private static final Logger LOG = LoggerFactory
 			.getLogger(DocumentInputFormat.class);
 
 	@Override
-	public RecordReader<Text, MapWritable> createRecordReader(InputSplit split,
-			TaskAttemptContext context) throws IOException,
+	public RecordReader<LongWritable, Document> createRecordReader(
+			InputSplit split, TaskAttemptContext context) throws IOException,
 			InterruptedException {
 		return new DocumentRecordReader();
 	}
 
-	@Override
-	public List<InputSplit> getSplits(JobContext job) throws IOException,
-			InterruptedException {
-		// generate splits
-		List<InputSplit> splits = new ArrayList<InputSplit>();
-		String fileName = job.getConfiguration().get("mapred.input.model");
-		if (fileName == null) {
-			throw new IOException("No model paths specified in job");
-		}
-		FileSystem fs = FileSystem.get(job.getConfiguration());
-		FileStatus[] status = fs.listStatus(new Path(fileName));
-		for (FileStatus file : status) {
-			WeakReference<DataModel> modelWeak = new WeakReference<DataModel>(
-					DataModel.read(file.getPath().toString()));
-
-			// long length = file.getLen();
-			// BlockLocation[] blkLocations = fs.getFileBlockLocations(file, 0,
-			// length);
-			// if (length != 0) {
-			// long blockSize = file.getBlockSize();
-			// long splitSize = Math.max(minSize, Math.min(maxSize, blockSize));
-			// splits.add(new DocumentSplit());
-			// }
-		}
-		return splits;
-	}
-
 	public static class DocumentRecordReader extends
-			RecordReader<Text, MapWritable> {
-
+			RecordReader<LongWritable, Document> {
+		private static final Gson GSON = new Gson();
 		private LineRecordReader reader = new LineRecordReader();
-		private final Text currentLine = new Text();
-		private final MapWritable value_ = new MapWritable();
+		private final Document doc = new GenericDocument<MapWritable>();
 
 		@Override
 		public void initialize(InputSplit split, TaskAttemptContext context)
@@ -80,35 +58,47 @@ public class DocumentInputFormat extends InputFormat<Text, MapWritable> {
 		}
 
 		@Override
-		public boolean nextKeyValue() throws IOException, InterruptedException {
-			// TODO Auto-generated method stub
-			return false;
+		public synchronized void close() throws IOException {
+			reader.close();
 		}
 
 		@Override
-		public Text getCurrentKey() throws IOException, InterruptedException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public MapWritable getCurrentValue() throws IOException,
+		public LongWritable getCurrentKey() throws IOException,
 				InterruptedException {
-			// TODO Auto-generated method stub
-			return null;
+			return reader.getCurrentKey();
+		}
+
+		@Override
+		public Document getCurrentValue() throws IOException,
+				InterruptedException {
+			return doc;
 		}
 
 		@Override
 		public float getProgress() throws IOException, InterruptedException {
-			// TODO Auto-generated method stub
-			return 0;
+			return reader.getProgress();
 		}
 
 		@Override
-		public void close() throws IOException {
-			// TODO Auto-generated method stub
-
+		public boolean nextKeyValue() throws IOException, InterruptedException {
+			while (reader.nextKeyValue()) {
+				doc.clear();
+				return jsonToDoc(reader.getCurrentValue(), doc);
+			}
+			return false;
 		}
 
+		public static boolean jsonToDoc(Text line, Document doc) {
+			if (line.getLength() == 0) {
+				return false;
+			}
+			try {
+				doc = GSON.fromJson(line.toString(), GenericDocument.class);
+			} catch (Exception e) {
+				LOG.error(e.getMessage());
+				return false;
+			}
+			return true;
+		}
 	}
 }

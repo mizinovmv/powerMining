@@ -4,27 +4,39 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableFactories;
 import org.apache.hadoop.io.WritableUtils;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+
 /**
  * Document for all Writable with bug: context type - Text
  */
 public class GenericDocument implements Document {
-
-	protected static final String DEFAULT_FIELD = "empty";
+	
 	protected String name = DEFAULT_FIELD;
 	protected String className = DEFAULT_FIELD;
 	protected String authors = DEFAULT_FIELD;
 	protected String year = DEFAULT_FIELD;
-	protected Writable context = new Text(DEFAULT_FIELD);
+	protected Writable context = new MapWritable();
 
 	public void write(DataOutput out) throws IOException {
 		new Text(name).write(out);
@@ -117,5 +129,9 @@ public class GenericDocument implements Document {
 		this.year = DEFAULT_FIELD;
 		this.context = new Text(DEFAULT_FIELD);
 	}
+
+//	public static Document fromJson(String json) {
+//		return gson.fromJson(json, Document.class);
+//	}
 
 }

@@ -12,6 +12,7 @@ import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.mpei.data.document.Document;
 
 /**
  * Data model with labels and tokens
@@ -20,7 +21,7 @@ import org.apache.hadoop.io.Writable;
  */
 public class DataModel implements Writable {
 
-	private MapWritable values = new MapWritable();
+	private final MapWritable values = new MapWritable();
 
 	/**
 	 * Construtor for reading from file
@@ -78,12 +79,13 @@ public class DataModel implements Writable {
 	 *            tokens for label
 	 */
 	public synchronized void addDocuments(Text label, Document[] docs) {
-		DocumentArrayWritable array = new DocumentArrayWritable(docs[0].getClass());
+		DocumentArrayWritable array = new DocumentArrayWritable(
+				docs[0].getClass());
 		array.set(docs);
 		values.put(label, array);
-//		DocumentArrayWritable arrayLabel = (DocumentArrayWritable) values
-//				.get(label);
-//		arrayLabel.set(docs);
+		// DocumentArrayWritable arrayLabel = (DocumentArrayWritable) values
+		// .get(label);
+		// arrayLabel.set(docs);
 	}
 
 	public String[] getLabels() {
@@ -100,7 +102,7 @@ public class DataModel implements Writable {
 	}
 
 	public DocumentArrayWritable getDocuments(String key) {
-		return (DocumentArrayWritable)values.get(new Text(key));
+		return (DocumentArrayWritable) values.get(new Text(key));
 	}
 
 	/**

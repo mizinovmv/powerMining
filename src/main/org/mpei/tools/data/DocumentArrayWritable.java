@@ -1,25 +1,27 @@
 package org.mpei.tools.data;
 
 import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableFactories;
+import org.mpei.data.document.Document;
+import org.mpei.data.document.DocumentFabric;
 
-public class DocumentArrayWritable extends ArrayWritable implements
+public class DocumentArrayWritable extends ArrayWritable implements Writable,
 		Iterable<Document> {
 	public DocumentArrayWritable() {
-		super(GenericDocument.class);
+		super(Document.class);
 	}
-	public DocumentArrayWritable(Class<? extends Writable> valueClass) {
+
+	public DocumentArrayWritable(Class<? extends Document> valueClass) {
 		super(valueClass);
 	}
+
 	public int size() {
 		return get().length;
 	}
@@ -32,6 +34,16 @@ public class DocumentArrayWritable extends ArrayWritable implements
 			b.append("\n");
 		}
 		return b.toString();
+	}
+
+	public void readFields(DataInput in) throws IOException {
+		Writable[] values = new Writable[in.readInt()]; // construct values
+		for (int i = 0; i < values.length; i++) {
+			Writable value = DocumentFabric.newInstance();
+			value.readFields(in); // read a value
+			values[i] = value; // store it in values
+		}
+		super.set(values);
 	}
 
 	public Iterator<Document> iterator() {

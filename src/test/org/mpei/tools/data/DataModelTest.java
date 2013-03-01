@@ -7,14 +7,15 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DataModelTest {
-	String path = "dataModel";
-	DataModel model;
+	String path = "test/DataModelTest";
+	static DataModel model;
 	DataOutputStream out;
-	@Before
-	public void setUp() throws Exception {
+	@BeforeClass
+	static public void setUp() throws Exception {
 		
 		
 	}
@@ -31,9 +32,6 @@ public class DataModelTest {
 
 	@Test
 	public void testRead() {
-		JsonUrlDataModelBuilder builder = new JsonUrlDataModelBuilder();
-		model = builder
-				.build("https://classification-mizinov.rhcloud.com/api/");
 		DataModel testModel = DataModel.read(path);
 		assertNotNull(testModel);
 		assertNotNull(model);

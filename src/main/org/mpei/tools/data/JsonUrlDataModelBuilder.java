@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.io.Text;
+import org.mpei.data.document.Document;
+import org.mpei.data.document.DocumentFabric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +83,7 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 				for (JsonElement attr : attrsJson) {
 					if (attr.isJsonObject()) {
 						JsonObject attrObj = (JsonObject) attr;
-						Document doc = new GenericDocument();
+						Document doc = DocumentFabric.newInstance();
 						doc.setContext(new Text(attrObj.get(TAG_ANNOTATION).getAsString()));
 						doc.setName(attrObj.get(TAG_LABEL).getAsString());
 						doc.setClassName(label);

@@ -1,9 +1,9 @@
-package org.mpei.tools.data;
+package org.mpei.data.document;
 
 import org.apache.hadoop.io.Writable;
 
 public interface Document extends Writable {
-
+	String DEFAULT_VALUE = "__";
 	String getName();
 
 	String getClassName();
@@ -20,9 +20,7 @@ public interface Document extends Writable {
 
 	void setYear(String year);
 
-	public Writable getContext();
+	<T> T getContext();
 
-	public <T extends Writable> void setContext(T context);
-	
-	void clear();
+	<T> void setContext(T context);
 }

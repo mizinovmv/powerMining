@@ -1,4 +1,4 @@
-package org.mpei.tools.data;
+package org.mpei.data.document;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -23,8 +23,6 @@ import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.mpei.data.document.Document;
-import org.mpei.data.document.DocumentFabric;
 import org.mpei.knn.KnnDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +48,7 @@ public class DocumentInputFormat extends
 	public static class DocumentRecordReader extends
 			RecordReader<LongWritable, Document> {
 		private LineRecordReader reader = new LineRecordReader();
-		private Document doc;
+		private Document doc = null;
 
 		@Override
 		public void initialize(InputSplit split, TaskAttemptContext context)
@@ -83,12 +81,12 @@ public class DocumentInputFormat extends
 		@Override
 		public boolean nextKeyValue() throws IOException, InterruptedException {
 			while (reader.nextKeyValue()) {
-				return jsonToDoc(reader.getCurrentValue(), doc);
+				return jsonToDocument(reader.getCurrentValue(), doc);
 			}
 			return false;
 		}
 
-		public static boolean jsonToDoc(Text line, Document doc) {
+		public static boolean jsonToDocument(Text line, Document doc) {
 			if (line.getLength() == 0) {
 				return false;
 			}

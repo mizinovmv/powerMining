@@ -1,19 +1,27 @@
 package org.mpei.tools.data;
 
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableFactories;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -26,14 +34,34 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.google.gson.TypeAdapter;
+import com.google.gson.TypeAdapterFactory;
+import com.google.gson.reflect.TypeToken;
 
 import weka.core.stemmers.SnowballStemmer;
 
 public class DataModelAnalyzer {
 	private static final Logger LOG = LoggerFactory
 			.getLogger(DataModelAnalyzer.class);
+
+	static {
+		GsonBuilder builder = new GsonBuilder();
+		builder = builder.registerTypeHierarchyAdapter(Writable.class, new WritableAdapter<Writable>());
+		gson = builder.registerTypeHierarchyAdapter(Document.class,
+				new DocumentTypeConverter<Document>()).create();
+	}
+
+	public static Gson gson;
 	private StandardAnalyzer analyzer = new StandardAnalyzer(Version.LUCENE_36);
-	private final Gson gson = new Gson();
 	private DataModel model;
 
 	enum Weight {
@@ -146,13 +174,121 @@ public class DataModelAnalyzer {
 
 		return tokenModel;
 	}
+	public class LowercaseEnumTypeAdapterFactory implements TypeAdapterFactory {
+		public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+			Class<T> rawType = (Class<T>) type.getRawType();
+			if(rawType.equals(Document.class)){
+				return new DocumentTypeConverter();
+			}
+			return null;
+		}
+//	     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+//	       Class<T> rawType = (Class<T>) type.getRawType();
+//	       if (!rawType.isEnum()) {
+//	         return null;
+//	       }
+//
+//	       final Map<String, T> lowercaseToConstant = new HashMap<String, T>();
+//	       for (T constant : rawType.getEnumConstants()) {
+//	         lowercaseToConstant.put(toLowercase(constant), constant);
+//	       }
+//
+//	       return new TypeAdapter<T>() {
+//	         public void write(JsonWriter out, T value) throws IOException {
+//	           if (value == null) {
+//	             out.nullValue();
+//	           } else {
+//	             out.value(toLowercase(value));
+//	           }
+//	         }
+//
+//	         public T read(JsonReader reader) throws IOException {
+//	           if (reader.peek() == JsonToken.NULL) {
+//	             reader.nextNull();
+//	             return null;
+//	           } else {
+//	             return lowercaseToConstant.get(reader.nextString());
+//	           }
+//	         }
+//	       };
+	     }
+	public static class WritableAdapter<T extends Writable> implements JsonSerializer<T>,
+			JsonDeserializer<T> {
+
+		private static final String CLASSNAME = "c";
+		private static final String INSTANCE = "i";
+
+		public JsonElement serialize(T src, Type typeOfSrc,
+				JsonSerializationContext context) {
+			JsonObject retValue = new JsonObject();
+			String className = src.getClass().getCanonicalName();
+			retValue.addProperty(CLASSNAME, className);
+			JsonElement elem = context.serialize(src);
+			retValue.add(INSTANCE, elem);
+			return retValue;
+		}
+
+		public T deserialize(JsonElement json, Type typeOfT,
+				JsonDeserializationContext context) throws JsonParseException {
+			JsonObject jsonObject = json.getAsJsonObject();
+			JsonPrimitive prim = (JsonPrimitive) jsonObject.get(CLASSNAME);
+			String className = prim.getAsString();
+
+			Class<?> klass = null;
+			try {
+				klass = Class.forName(className);
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+				throw new JsonParseException(e.getMessage());
+			}
+			return context.deserialize(jsonObject.get(INSTANCE), klass);
+		}
+	}
+
+	public static class DocumentAdapter<T extends Document> implements
+			JsonSerializer<T>, JsonDeserializer<T> {
+		public JsonElement serialize(T src, Type typeOfSrc,
+				JsonSerializationContext context) {
+			JsonObject result = new JsonObject();
+			JsonElement elem = null;
+			for (Field field : src.getClass().getDeclaredFields()) {
+				try {
+					elem = context.serialize(field.get(src));
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				result.add(field.getName(), elem);
+			}
+			return result;
+		}
+
+		public T deserialize(JsonElement json, Type typeOfT,
+				JsonDeserializationContext context) throws JsonParseException {
+			JsonObject jsonObject = json.getAsJsonObject();
+			Document doc = new GenericDocument();
+			Iterator<Entry<String, JsonElement>> it = jsonObject.entrySet()
+					.iterator();
+			for (Field field : doc.getClass().getDeclaredFields()) {
+				try {
+					field.set(
+							doc,
+							context.deserialize(it.next().getValue(),
+									field.getType()));
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+			return (T) doc;
+		}
+	}
 
 	public static void toJSON(DataModel model, String path) {
-		Gson gson = new Gson();
 		for (String key : model.getLabels()) {
 			try {
-				FileOutputStream fstream = new FileOutputStream(new File(path+"/"+key));
+				FileOutputStream fstream = new FileOutputStream(new File(path
+						+ "/" + key));
 				DataOutputStream out = new DataOutputStream(fstream);
+				out.writeInt(model.getDocuments(key).size());
 				for (Document doc : model.getDocuments(key)) {
 					out.writeUTF(gson.toJson(doc));
 				}
@@ -164,32 +300,32 @@ public class DataModelAnalyzer {
 		}
 	}
 
-	public static void main(String[] args) {
-		String pathModel = "dataModel";
-		String pathTokenModel = "tokenDataModel";
-		JsonUrlDataModelBuilder builder = new JsonUrlDataModelBuilder();
-		DataModel model = builder
-				.build("https://classification-mizinov.rhcloud.com/api/");
-		DataOutputStream out = null;
-		try {
-			FileOutputStream fstream = new FileOutputStream(new File(pathModel));
-			out = new DataOutputStream(fstream);
-//			model.write(out);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+	public static void fromJSON(DataModel model, String path)
+			throws IOException {
+
+		DataInputStream in = null;
+		FileInputStream fstream = null;
+		File[] files = new File(path).listFiles();
+		Document[] docs = null;
+		for (File key : files) {
+			try {
+				fstream = new FileInputStream(key);
+				in = new DataInputStream(fstream);
+				Document doc = null;
+				int sizeDoc = in.readInt();
+				docs = new Document[files.length];
+				for (int i = 0; i < sizeDoc; ++i) {
+					docs[i] = gson
+							.fromJson(in.readUTF(), GenericDocument.class);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new RuntimeException(e);
+			} finally {
+				in.close();
+			}
+			model.addDocuments(key.getName(), docs);
 		}
-		// DataModel model = DataModel.read(pathModel);
-		DataModelAnalyzer analyzer = new DataModelAnalyzer(model);
-		DataModel tokenModel = analyzer.build(Weight.TFIDF, true, out);
-		try {
-			FileOutputStream fstream = new FileOutputStream(new File(
-					pathTokenModel));
-			out = new DataOutputStream(fstream);
-			tokenModel.write(out);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-		// DataModel tokenModel = DataModel.read(pathTokenModel);
-		DataModelAnalyzer.toJSON(tokenModel, "resources");
+
 	}
 }

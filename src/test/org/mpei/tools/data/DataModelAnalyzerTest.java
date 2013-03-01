@@ -1,40 +1,52 @@
 package org.mpei.tools.data;
 
-import static org.junit.Assert.*;
-
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 
-import org.junit.Before;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mpei.tools.data.DataModelAnalyzer.Weight;
 
-public class DataModelAnalyzerTest {
-	
-	String pathModel = "dataModel";
-	String pathTokenModel = "tokenDataModel";
-	DataModelAnalyzer analyzer;
-
-	@Before
-	public void setUp() throws Exception {
-		DataModel model = DataModel.read(pathModel);
-		analyzer = new DataModelAnalyzer(model);
-	}
+public class DataModelAnalyzerTest extends Assert {
 
 	@Test
-	public void testBuild() throws Exception{
-		DataModel tokenModel = analyzer.build(Weight.TFIDF, true);
+	public void test() {
+		String pathModel = "dataModel";
+		String pathTokenModel = "tokenDataModel";
+		String pathJsonModel = "resources";
+//		JsonUrlDataModelBuilder builder = new JsonUrlDataModelBuilder();
+//		DataModel model = builder
+//				.build("https://classification-mizinov.rhcloud.com/api/");
+//		DataOutputStream out = null;
+//		try {
+//			FileOutputStream fstream = new FileOutputStream(new File(pathModel));
+//			out = new DataOutputStream(fstream);
+//			// model.write(out);
+//		} catch (Exception e) {
+//			throw new RuntimeException(e);
+//		}
+//		// DataModel model = DataModel.read(pathModel);
+//		DataModelAnalyzer analyzer = new DataModelAnalyzer(model);
+//		DataModel tokenModel = analyzer.build(Weight.TFIDF, true, out);
+//		try {
+//			FileOutputStream fstream = new FileOutputStream(new File(
+//					pathTokenModel));
+//			out = new DataOutputStream(fstream);
+//			tokenModel.write(out);
+//		} catch (Exception e) {
+//			throw new RuntimeException(e);
+//		}
+		 DataModel tokenModel = DataModel.read(pathTokenModel);
 		assertNotNull(tokenModel);
-		FileOutputStream fstream = new FileOutputStream(new File(pathTokenModel));
-		DataOutputStream out = new DataOutputStream(fstream);
-		tokenModel.write(out);
-	}
-
-	@Test
-	public void testToJSON() {
-		DataModel tokenModel= DataModel.read(pathTokenModel);
-		DataModelAnalyzer.toJSON(tokenModel, "testpath");
+		DataModelAnalyzer.toJSON(tokenModel, pathJsonModel);
+		DataModel jsonModel = new DataModel();
+		try {
+			DataModelAnalyzer.fromJSON(jsonModel, pathJsonModel);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		assertEquals(tokenModel, jsonModel);
 	}
 
 }

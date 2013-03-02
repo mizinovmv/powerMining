@@ -1,11 +1,11 @@
 package org.mpei.tools.data;
 
-import java.io.DataInputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Field;
@@ -13,54 +13,34 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableFactories;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.Version;
 import org.apache.mahout.vectorizer.TFIDF;
-import org.json.simple.JSONObject;
-import org.mpei.tools.data.DataModelDictionary.MyAnalyzer;
+import org.mpei.data.document.Document;
+import org.mpei.data.document.DocumentFabric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
-import com.google.gson.reflect.TypeToken;
-
-import weka.core.stemmers.SnowballStemmer;
 
 public class DataModelAnalyzer {
 	private static final Logger LOG = LoggerFactory
 			.getLogger(DataModelAnalyzer.class);
 
-	static {
-		GsonBuilder builder = new GsonBuilder();
-		builder = builder.registerTypeHierarchyAdapter(Writable.class, new WritableAdapter<Writable>());
-		gson = builder.registerTypeHierarchyAdapter(Document.class,
-				new DocumentTypeConverter<Document>()).create();
-	}
-
-	public static Gson gson;
 	private StandardAnalyzer analyzer = new StandardAnalyzer(Version.LUCENE_36);
 	private DataModel model;
 
@@ -74,9 +54,10 @@ public class DataModelAnalyzer {
 
 	private String stem(DataModelDictionary.MyAnalyzer stemAnalyzer,
 			String token) {
+		TokenStream streamStem = null;
 		try {
-			TokenStream streamStem = stemAnalyzer.tokenStream(null,
-					new StringReader(token));
+			streamStem = stemAnalyzer
+					.tokenStream(null, new StringReader(token));
 			while (streamStem.incrementToken()) {
 				token = streamStem.getAttribute(CharTermAttribute.class)
 						.toString();
@@ -84,6 +65,12 @@ public class DataModelAnalyzer {
 		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
+		} finally {
+			try {
+				streamStem.close();
+			} catch (IOException e2) {
+				throw new RuntimeException(e2);
+			}
 		}
 		return token;
 	}
@@ -118,6 +105,12 @@ public class DataModelAnalyzer {
 					}
 				} catch (IOException e) {
 					throw new RuntimeException(e);
+				} finally {
+					try {
+						stream.close();
+					} catch (IOException e2) {
+						throw new RuntimeException(e2);
+					}
 				}
 				// LOG.info(tokens.toString());
 				for (Map.Entry<String, Integer> entry : tokens.entrySet()) {
@@ -140,13 +133,13 @@ public class DataModelAnalyzer {
 									numDocs)));
 				}
 				// LOG.info(tokensTfIdf.toString());
-				Document tokenDoc = new GenericDocument();
+				Document tokenDoc = DocumentFabric.newInstance();
 				tokenDoc.setContext(tokensTfIdf);
 				docs[i] = tokenDoc;
 				++i;
 				if (out != null) {
 					try {
-						out.writeUTF(gson.toJson(doc));
+						out.writeUTF(DocumentFabric.toJson(tokenDoc));
 					} catch (IOException e) {
 						throw new RuntimeException(e);
 					}
@@ -174,76 +167,6 @@ public class DataModelAnalyzer {
 
 		return tokenModel;
 	}
-	public class LowercaseEnumTypeAdapterFactory implements TypeAdapterFactory {
-		public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-			Class<T> rawType = (Class<T>) type.getRawType();
-			if(rawType.equals(Document.class)){
-				return new DocumentTypeConverter();
-			}
-			return null;
-		}
-//	     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-//	       Class<T> rawType = (Class<T>) type.getRawType();
-//	       if (!rawType.isEnum()) {
-//	         return null;
-//	       }
-//
-//	       final Map<String, T> lowercaseToConstant = new HashMap<String, T>();
-//	       for (T constant : rawType.getEnumConstants()) {
-//	         lowercaseToConstant.put(toLowercase(constant), constant);
-//	       }
-//
-//	       return new TypeAdapter<T>() {
-//	         public void write(JsonWriter out, T value) throws IOException {
-//	           if (value == null) {
-//	             out.nullValue();
-//	           } else {
-//	             out.value(toLowercase(value));
-//	           }
-//	         }
-//
-//	         public T read(JsonReader reader) throws IOException {
-//	           if (reader.peek() == JsonToken.NULL) {
-//	             reader.nextNull();
-//	             return null;
-//	           } else {
-//	             return lowercaseToConstant.get(reader.nextString());
-//	           }
-//	         }
-//	       };
-	     }
-	public static class WritableAdapter<T extends Writable> implements JsonSerializer<T>,
-			JsonDeserializer<T> {
-
-		private static final String CLASSNAME = "c";
-		private static final String INSTANCE = "i";
-
-		public JsonElement serialize(T src, Type typeOfSrc,
-				JsonSerializationContext context) {
-			JsonObject retValue = new JsonObject();
-			String className = src.getClass().getCanonicalName();
-			retValue.addProperty(CLASSNAME, className);
-			JsonElement elem = context.serialize(src);
-			retValue.add(INSTANCE, elem);
-			return retValue;
-		}
-
-		public T deserialize(JsonElement json, Type typeOfT,
-				JsonDeserializationContext context) throws JsonParseException {
-			JsonObject jsonObject = json.getAsJsonObject();
-			JsonPrimitive prim = (JsonPrimitive) jsonObject.get(CLASSNAME);
-			String className = prim.getAsString();
-
-			Class<?> klass = null;
-			try {
-				klass = Class.forName(className);
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-				throw new JsonParseException(e.getMessage());
-			}
-			return context.deserialize(jsonObject.get(INSTANCE), klass);
-		}
-	}
 
 	public static class DocumentAdapter<T extends Document> implements
 			JsonSerializer<T>, JsonDeserializer<T> {
@@ -265,7 +188,7 @@ public class DataModelAnalyzer {
 		public T deserialize(JsonElement json, Type typeOfT,
 				JsonDeserializationContext context) throws JsonParseException {
 			JsonObject jsonObject = json.getAsJsonObject();
-			Document doc = new GenericDocument();
+			Document doc = DocumentFabric.newInstance();
 			Iterator<Entry<String, JsonElement>> it = jsonObject.entrySet()
 					.iterator();
 			for (Field field : doc.getClass().getDeclaredFields()) {
@@ -283,48 +206,59 @@ public class DataModelAnalyzer {
 	}
 
 	public static void toJSON(DataModel model, String path) {
+		FileWriter fr = null;
+		BufferedWriter bw = null;
 		for (String key : model.getLabels()) {
 			try {
-				FileOutputStream fstream = new FileOutputStream(new File(path
-						+ "/" + key));
-				DataOutputStream out = new DataOutputStream(fstream);
-				out.writeInt(model.getDocuments(key).size());
+				fr = new FileWriter(new File(path, key));
+				bw = new BufferedWriter(fr);
 				for (Document doc : model.getDocuments(key)) {
-					out.writeUTF(gson.toJson(doc));
+					String line = DocumentFabric.toJson(doc)
+							+ System.getProperty("line.separator");
+					bw.write(line);
 				}
-				out.close();
 			} catch (Exception e) {
-				e.printStackTrace();
 				throw new RuntimeException(e);
+			} finally {
+				if (bw != null) {
+					try {
+						bw.close();
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
 			}
+
 		}
 	}
 
 	public static void fromJSON(DataModel model, String path)
 			throws IOException {
-
-		DataInputStream in = null;
-		FileInputStream fstream = null;
 		File[] files = new File(path).listFiles();
-		Document[] docs = null;
+		ArrayList<Document> docs = new ArrayList<Document>();
+		Document[] a = new Document[0];
+		FileReader fr = null;
+		BufferedReader br = null;
+		String line = null;
 		for (File key : files) {
 			try {
-				fstream = new FileInputStream(key);
-				in = new DataInputStream(fstream);
-				Document doc = null;
-				int sizeDoc = in.readInt();
-				docs = new Document[files.length];
-				for (int i = 0; i < sizeDoc; ++i) {
-					docs[i] = gson
-							.fromJson(in.readUTF(), GenericDocument.class);
+				fr = new FileReader(key);
+				br = new BufferedReader(fr);
+				while((line = br.readLine()) != null){
+					docs.add(DocumentFabric.fromJson(line));
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
 				throw new RuntimeException(e);
 			} finally {
-				in.close();
+				if (br != null) {
+					try {
+						br.close();
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
 			}
-			model.addDocuments(key.getName(), docs);
+			model.addDocuments(key.getName(), docs.toArray(a));
 		}
 
 	}

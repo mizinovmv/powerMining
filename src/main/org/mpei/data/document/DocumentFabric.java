@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -19,6 +20,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
@@ -50,7 +52,7 @@ public class DocumentFabric {
 			JsonElement elem = null;
 			for (Field field : src.getClass().getDeclaredFields()) {
 				try {
-					elem = context.serialize(field.get(src));					
+					elem = context.serialize(field.get(src));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -79,6 +81,39 @@ public class DocumentFabric {
 				}
 			}
 			return (T) doc;
+		}
+	}
+
+	public static class WritableAdapter<T extends Writable> implements
+			JsonSerializer<T>, JsonDeserializer<T> {
+
+		private static final String CLASSNAME = "c";
+		private static final String INSTANCE = "i";
+
+		public JsonElement serialize(T src, Type typeOfSrc,
+				JsonSerializationContext context) {
+			JsonObject retValue = new JsonObject();
+			String className = src.getClass().getCanonicalName();
+			retValue.addProperty(CLASSNAME, className);
+			JsonElement elem = context.serialize(src);
+			retValue.add(INSTANCE, elem);
+			return retValue;
+		}
+
+		public T deserialize(JsonElement json, Type typeOfT,
+				JsonDeserializationContext context) throws JsonParseException {
+			JsonObject jsonObject = json.getAsJsonObject();
+			JsonPrimitive prim = (JsonPrimitive) jsonObject.get(CLASSNAME);
+			String className = prim.getAsString();
+
+			Class<?> klass = null;
+			try {
+				klass = Class.forName(className);
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+				throw new JsonParseException(e.getMessage());
+			}
+			return context.deserialize(jsonObject.get(INSTANCE), klass);
 		}
 	}
 

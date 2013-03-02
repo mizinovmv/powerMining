@@ -12,6 +12,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -45,10 +47,17 @@ public class DocumentInputFormat extends
 		return new DocumentRecordReader();
 	}
 
+	@Override
+	protected boolean isSplitable(JobContext context, Path file) {
+		CompressionCodec codec = new CompressionCodecFactory(
+				context.getConfiguration()).getCodec(file);
+		return codec == null;
+	}
+
 	public static class DocumentRecordReader extends
 			RecordReader<LongWritable, Document> {
-		private LineRecordReader reader = new LineRecordReader();
-		private Document doc = null;
+		private final LineRecordReader reader = new LineRecordReader();
+		private final Document doc = DocumentFabric.newInstance();
 
 		@Override
 		public void initialize(InputSplit split, TaskAttemptContext context)
@@ -81,7 +90,9 @@ public class DocumentInputFormat extends
 		@Override
 		public boolean nextKeyValue() throws IOException, InterruptedException {
 			while (reader.nextKeyValue()) {
-				return jsonToDocument(reader.getCurrentValue(), doc);
+				if (jsonToDocument(reader.getCurrentValue(), doc)) {
+					return true;
+				}
 			}
 			return false;
 		}

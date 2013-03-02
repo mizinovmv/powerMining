@@ -2,44 +2,46 @@ package org.mpei.kmeans.train;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
-import org.mpei.json.JsonInputFormat;
-import org.mpei.kmeans.KMeansCombiner;
-import org.mpei.knn.KnnDriver;
-import org.mpei.tools.data.DocumentInputFormat;
+import org.apache.mahout.common.AbstractJob;
+import org.apache.mahout.common.HadoopUtil;
+import org.apache.mahout.common.commandline.DefaultOptionCreator;
+import org.mpei.data.document.DocumentInputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KMeansDriverTrain {
+public class KMeansDriverTrain extends AbstractJob{
 	private static final Logger LOG = LoggerFactory
 			.getLogger(KMeansDriverTrain.class);
 
-	public static int start(String[] args) throws IOException,
+	public int run(String[] args) throws IOException,
 			ClassNotFoundException, InterruptedException {
-		// config a job and start it
-		Configuration conf = new Configuration();
-		Job job = new Job(conf, "KMeansDriverTrain");
-		job.setJarByClass(KMeansDriverTrain.class);
-
-		job.setMapperClass(KMeansMapperTrain.class);
-		job.setReducerClass(KMeansReducerTrain.class);
-
-		job.setInputFormatClass(DocumentInputFormat.class);
-		// job.setOutputFormatClass(ARFFOutputFormat.class);
-
-		FileInputFormat.addInputPath(job, new Path(args[0]));
-		Path out = new Path(args[1]);
-		FileSystem.get(conf).delete(out, true);
-		FileOutputFormat.setOutputPath(job, out);
+		addInputOption();
+		addOutputOption();
+		addOption(DefaultOptionCreator.overwriteOption().create());
+		Map<String, List<String>> parsedArgs = parseArguments(args);
+		if (parsedArgs == null) {
+			return -1;
+		}
+		Path input = getInputPath();
+		Path output = getOutputPath();
+		if (hasOption(DefaultOptionCreator.OVERWRITE_OPTION)) {
+			HadoopUtil.delete(getConf(), output);
+		}
+		Job job = HadoopUtil.prepareJob(input, output, DocumentInputFormat.class,
+				KMeansMapperTrain.class, Text.class, MapWritable.class,
+				KMeansReducerTrain.class, Text.class, MapWritable.class,
+				TextOutputFormat.class, getConf());
+		job.setJobName("KMeansDriverTrain");
 
 		Date startTime = new Date();
 		System.out.println("Job started: " + startTime);
@@ -54,8 +56,9 @@ public class KMeansDriverTrain {
 	}
 
 	public static void main(String[] args) {
+		String[] debug = {"--input","resources","--output","KMeansDriverTrain","--overwrite"}; 
 		try {
-			System.exit(start(args));
+			ToolRunner.run(new Configuration(), new KMeansDriverTrain(), debug);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println(e.getMessage());

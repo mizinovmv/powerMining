@@ -1,10 +1,14 @@
 package org.mpei.data.document;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 
@@ -15,36 +19,53 @@ import org.junit.Test;
 
 public class DocumentFabricTest extends Assert {
 	static String path = "test/DocumentFabricTest";
-	static DataOutputStream out = null;
-	static DataInputStream in = null;
 
-	@BeforeClass
-	public static void setup() {
+	static BufferedWriter writer;
+	static BufferedReader reader;
+
+	@Test
+	public void setup() {
+		FileWriter out = null;
+		FileReader in = null;
 		try {
-			FileOutputStream fstreamOut = new FileOutputStream(new File(path));
-			FileInputStream fstreamIn = new FileInputStream(new File(path));
-			out = new DataOutputStream(fstreamOut);
-			in = new DataInputStream(fstreamIn);
+			out = new FileWriter(new File(path));
+			writer = new BufferedWriter(out);
+			test();
+//			in = new FileReader(new File(path));
+//			reader = new BufferedReader(in);
+//			Document doc2 = DocumentFabric.fromJson(reader.readLine());
 		} catch (Exception e) {
 			throw new RuntimeException(e);
+		} finally {
+			if (out != null) {
+				try {
+					out.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
-	@Test
 	public void test() throws IOException {
 		Document doc = DocumentFabric.newInstance();
 		assertNotNull(doc);
-		int i = 1;
-		doc.setContext(i);
+		int h = 1;
+		doc.setContext(h);
 		assertEquals(doc.getContext(), 1);
 		Map<String, Double> map = new HashedMap();
-		map.put("word1", 4.3d);
+		for (int i = 0; i < 10; ++i) {
+			map.put("word" + i, Double.valueOf(i));
+		}
+
 		doc.setContext(map);
 		assertEquals(doc.getContext(), map);
-		doc.write(out);
-		Document doc2 = DocumentFabric.newInstance();
-		doc2.readFields(in);
-		assertEquals(doc, doc2);
+		String tmp = DocumentFabric.toJson(doc);
+		for (int i = 0; i < 10; ++i) {
+			writer.write(tmp);
+			writer.flush();
+		}
+		
 	}
 
 }

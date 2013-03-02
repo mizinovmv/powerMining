@@ -6,6 +6,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.mpei.data.document.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,5 @@ public class KMeansMapperTrain extends
 	protected void map(LongWritable key, Document value, Context context)
 			throws IOException, InterruptedException {
 		LOG.info(value.toString());
-		super.map(key, value, context);
 	}
-
 }

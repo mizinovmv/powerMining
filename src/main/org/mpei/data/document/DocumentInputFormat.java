@@ -54,10 +54,10 @@ public class DocumentInputFormat extends
 		return codec == null;
 	}
 
-	public static class DocumentRecordReader extends
+	public class DocumentRecordReader extends
 			RecordReader<LongWritable, Document> {
 		private final LineRecordReader reader = new LineRecordReader();
-		private final Document doc = DocumentFabric.newInstance();
+		private Document doc;
 
 		@Override
 		public void initialize(InputSplit split, TaskAttemptContext context)
@@ -90,14 +90,14 @@ public class DocumentInputFormat extends
 		@Override
 		public boolean nextKeyValue() throws IOException, InterruptedException {
 			while (reader.nextKeyValue()) {
-				if (jsonToDocument(reader.getCurrentValue(), doc)) {
+				if (jsonToDocument(reader.getCurrentValue())) {
 					return true;
 				}
 			}
 			return false;
 		}
 
-		public static boolean jsonToDocument(Text line, Document doc) {
+		public boolean jsonToDocument(Text line) {
 			if (line.getLength() == 0) {
 				return false;
 			}

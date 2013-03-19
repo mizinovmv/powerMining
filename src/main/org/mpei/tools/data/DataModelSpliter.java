@@ -1,5 +1,6 @@
 package org.mpei.tools.data;
 
+import org.mpei.data.document.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,9 +51,8 @@ public class DataModelSpliter {
 			Document[] docs = new Document[size - splitNumber];
 			for (Document doc : model.getDocuments(key)) {
 				if (i >= splitNumber) {
-					docs[i] = doc;
-				} else
-					break;
+					docs[i-splitNumber] = doc;
+				} 
 				++i;
 			}
 			testModel.addDocuments(key, docs);

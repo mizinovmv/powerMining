@@ -6,14 +6,20 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.hadoop.io.Text;
+import org.jfree.util.Log;
+import org.mpei.data.document.DocumentFabric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tartarus.snowball.ext.PorterStemmer;
@@ -27,13 +33,13 @@ import org.w3c.dom.NodeList;
  * 
  */
 public class XmlDataModelBuilder implements DataModelBuilder {
-	private static final Logger log = LoggerFactory
+	private static final Logger LOG = LoggerFactory
 			.getLogger(XmlDataModelBuilder.class);
 	public static final String TAG_ANNOTATION = "content";
 	public static final String TAG_YEAR = "year";
 	public static final String TAG_AUTHORS = "authors";
 	public static final String TAG_TITLE = "title";
-
+	public static final String XML_REGEX = "(.*)(\\.xml)$";
 	private final DocumentBuilderFactory dbFactory = DocumentBuilderFactory
 			.newInstance();
 	private final PorterStemmer stem = new PorterStemmer();
@@ -41,11 +47,28 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 	private DataModel model;
 	private AtomicInteger countTokens = new AtomicInteger(0);
 
+	/**
+	 * build {@link DataModel} from xml documents
+	 * 
+	 * @param path
+	 *            directory with xml files
+	 */
 	public DataModel build(String path) {
 		try {
 			File files = getPath(path);
 			File[] listFile = files.listFiles();
-			String[] labels = files.list();
+			String[] labels = new String[files.list().length];
+			int i = 0;
+
+			Pattern pattern = Pattern.compile(XML_REGEX);
+			for (String nameLabel : files.list()) {
+				Matcher m = pattern.matcher(nameLabel);
+				if (m.matches()) {
+					labels[i] = m.group(1);
+					++i;
+				}
+
+			}
 			model = new DataModel(labels);
 			ExecutorService executor = Executors
 					.newFixedThreadPool(listFile.length);
@@ -59,6 +82,7 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 			// Document doc = dBuilder.parse(fXmlFile);
 			// log.info(countTokens.toString());
 		} catch (Exception e) {
+			e.printStackTrace();
 			return null;
 		}
 		return model;
@@ -90,17 +114,24 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 		}
 
 		public void run() {
-			log.info("Run thread: " + file);
+			LOG.info("Run thread: " + file);
 			try {
+				Pattern pattern = Pattern.compile(XML_REGEX);
+				Matcher m = pattern.matcher(file.getName());
+				String className = null;
+				if (m.matches()) {
+					className = m.group(1);
+				}
 				DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 				Document doc = dBuilder.parse(file);
 				NodeList nList = doc
 						.getElementsByTagName(CoolgaDataParser.TAG_DOCUMENT);
 
-				log.info(String.valueOf(nList.getLength()));
+				LOG.info(String.valueOf(nList.getLength()));
 				countTokens.getAndAdd(nList.getLength());
-				org.mpei.tools.data.Document[] docs = new org.mpei.tools.data.Document[nList
-						.getLength()];
+				List<org.mpei.data.document.Document> docs = new ArrayList<org.mpei.data.document.Document>(
+						nList.getLength());
+				Log.info(String.valueOf(nList.getLength()));
 				for (int i = 0; i < nList.getLength(); i++) {
 					Node nNode = nList.item(i);
 					if (nNode.getNodeType() == Node.ELEMENT_NODE) {
@@ -112,7 +143,11 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 						if (docNode == null) {
 							continue;
 						}
-						org.mpei.tools.data.Document docData = new GenericDocument();
+						org.mpei.data.document.Document docData = DocumentFabric
+								.newInstance();
+						if (docData == null) {
+							throw new RuntimeException("null docs");
+						}
 						docData.setContext(new Text(docNode.getTextContent()));
 						docData.setYear(eElement.getElementsByTagName(TAG_YEAR)
 								.item(0).getTextContent());
@@ -122,16 +157,19 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 						docData.setName(eElement
 								.getElementsByTagName(TAG_TITLE).item(0)
 								.getTextContent());
-						docs[i] = docData;
+						docData.setClassName(className);
+						docs.add(docData);
 					}
 				}
-				model.addDocuments(file.getName().replace("[*][.xml]", "$1"),
-						docs);
+				org.mpei.data.document.Document[] a = new org.mpei.data.document.Document[docs
+						.size()];
+				
+					model.addDocuments(className, docs.toArray(a));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 
-			log.info("Complete thread: " + file);
+			LOG.info("Complete thread: " + file);
 		}
 	}
 
@@ -156,12 +194,12 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 			model.write(out);
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.error(e.getMessage());
+			LOG.error(e.getMessage());
 		} finally {
 			try {
 				out.close();
 			} catch (Exception e2) {
-				log.error(e2.getMessage());
+				LOG.error(e2.getMessage());
 			}
 		}
 

@@ -5,11 +5,14 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -23,6 +26,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.common.HadoopUtil;
 import org.apache.mahout.common.commandline.DefaultOptionCreator;
+import org.mpei.data.document.DocumentInputFormat;
 import org.mpei.json.JsonInputFormat;
 import org.mpei.knn.step2.Mapper2;
 import org.mpei.knn.step2.Reducer2;
@@ -31,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class KnnDriver extends AbstractJob {
 
-	private static final Logger log = LoggerFactory.getLogger(KnnDriver.class);
+	private static final Logger LOG = LoggerFactory.getLogger(KnnDriver.class);
 
 	public static final String NEIGHBORS = "mapred.conf.neighbors";
 	public static final String TOKEN_CASHE = "mapred.conf.tokencashe";
@@ -40,8 +44,10 @@ public class KnnDriver extends AbstractJob {
 	public static int NN = 1;
 
 	public static void main(String[] args) throws Exception {
+		String[] debug = { "--input", "dataTest", "--output", "KnnDriver",
+				"-t", "data", "--overwrite", "-tc", "Analyzer/part-r-00000" };
 		while (NN < 145) {
-			ToolRunner.run(new Configuration(), new KnnDriver(), args);
+			ToolRunner.run(new Configuration(), new KnnDriver(), debug);
 			++NN;
 		}
 	}
@@ -51,10 +57,10 @@ public class KnnDriver extends AbstractJob {
 		addOutputOption();
 		addOption(DefaultOptionCreator.overwriteOption().create());
 		addOption(KnnDriver.TOKEN_CASHE, "tc", "Path with token's vocabulary.",
-				"knnAnalyzer/part-r-00000");
+				"./");
 		addOption(KnnDriver.NEIGHBORS, "nn",
 				"number of search nearest neghbors.", "1");
-		addOption(KnnDriver.TRAIN, "t", "train data.", "classes");
+		addOption(KnnDriver.TRAIN, "t", "train data.", "./");
 		addOption(KnnDriver.METRIC, "m", "Metric type.", "2");
 		Map<String, List<String>> parsedArgs = parseArguments(args);
 		if (parsedArgs == null) {
@@ -66,20 +72,40 @@ public class KnnDriver extends AbstractJob {
 		if (hasOption(DefaultOptionCreator.OVERWRITE_OPTION)) {
 			HadoopUtil.delete(getConf(), output);
 		}
-		Job job = HadoopUtil.prepareJob(input, output, JsonInputFormat.class,
-				KnnMapper.class, Text.class, IntWritable.class,
-				IntSumReducer.class, Text.class, IntWritable.class,
-				TextOutputFormat.class, getConf());
+		Job job = HadoopUtil.prepareJob(input, output,
+				DocumentInputFormat.class, KnnMapper.class, Text.class,
+				IntWritable.class, IntSumReducer.class, Text.class,
+				IntWritable.class, TextOutputFormat.class, getConf());
 		job.setJobName("KnnDriver");
 
 		job.getConfiguration().set(TOKEN_CASHE, getOption(TOKEN_CASHE));
 		job.getConfiguration().set(TRAIN, getOption(TRAIN));
 		job.getConfiguration().set(METRIC, getOption(METRIC));
 		job.getConfiguration().set(NEIGHBORS, String.valueOf(NN));
+
+		cacheTrainData(job.getConfiguration());
+		URI uriTokens = new Path(job.getConfiguration().get(TOKEN_CASHE))
+				.toUri();
+		DistributedCache.addCacheFile(uriTokens, job.getConfiguration());
+
 		boolean succeeded = job.waitForCompletion(true);
 
 		logReadable(job, output);
 		return succeeded ? 0 : -1;
+	}
+
+	void cacheTrainData(Configuration conf) throws IOException {
+		FileSystem fs = FileSystem.get(conf);
+		Path hdfsPath = new Path(conf.get(TRAIN));
+		FileStatus[] status = fs.listStatus(hdfsPath);
+		for (FileStatus st : status) {
+			try {
+				DistributedCache.addCacheFile(new URI(st.getPath().toString()),
+						conf);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 	private void logReadable(Job job, Path output) throws IOException {
@@ -106,7 +132,7 @@ public class KnnDriver extends AbstractJob {
 					+ String.valueOf(values[0] / (values[0] + values[1]))
 					+ "\n");
 		} catch (Exception e) {
-			log.error(e.getMessage());
+			LOG.error(e.getMessage());
 			e.printStackTrace();
 		} finally {
 			buffReader.close();

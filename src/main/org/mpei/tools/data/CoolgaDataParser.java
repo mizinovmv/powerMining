@@ -144,7 +144,7 @@ public class CoolgaDataParser {
 					try {
 						in.close();
 					} catch (IOException e) {
-						new RuntimeException("can't close inputStream");
+						throw new RuntimeException("can't close inputStream");
 					}
 				}
 			}

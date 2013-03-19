@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map;
 
+import javax.management.RuntimeErrorException;
+
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -65,7 +67,7 @@ public class DataModel implements Writable {
 	 * @param tokens
 	 *            tokens for label
 	 */
-	public void addDocuments(String label, Document[] docs) {
+	public synchronized void addDocuments(String label, Document[] docs) {
 		Text labelText = new Text(label);
 		addDocuments(labelText, docs);
 	}
@@ -79,8 +81,11 @@ public class DataModel implements Writable {
 	 *            tokens for label
 	 */
 	public synchronized void addDocuments(Text label, Document[] docs) {
-		DocumentArrayWritable array = new DocumentArrayWritable(
-				docs[0].getClass());
+		if (docs == null) {
+			throw new RuntimeException("null docs");
+		}
+		Class<? extends Document> docType = docs[0].getClass();
+		DocumentArrayWritable array = new DocumentArrayWritable(docType);
 		array.set(docs);
 		values.put(label, array);
 		// DocumentArrayWritable arrayLabel = (DocumentArrayWritable) values

@@ -15,10 +15,11 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.mpei.data.document.Document;
+import org.mpei.data.document.DocumentFabric;
 import org.mpei.knn.kdtree.KnnKdtreeDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public class KnnKdtreeBuilder {
 
@@ -36,7 +37,7 @@ public class KnnKdtreeBuilder {
 			e.printStackTrace();
 			return null;
 		}
-		
+
 		KDTree kdtree = new KDTree(words.size());
 
 		try {
@@ -84,9 +85,12 @@ public class KnnKdtreeBuilder {
 			out = fs.create(new Path("KDTree.bin"));
 			KDTreeWritable.writeKDTree(out, kdTree);
 		} finally {
-			out.close();
+			if (out != null) {
+				out.close();
+			}
+
 		}
-		
+
 	}
 
 	public static final KDTree readKDTree(final Configuration conf)
@@ -116,8 +120,9 @@ public class KnnKdtreeBuilder {
 				words.add(wordJson.get("word").toString());
 			}
 		} finally {
-			buffReader.close();
-			fs.close();
+			if (buffReader != null) {
+				buffReader.close();
+			}
 		}
 		return words;
 	}
@@ -125,7 +130,8 @@ public class KnnKdtreeBuilder {
 	private static final void insertInKDTree(final JSONObject json,
 			final ArrayList<String> words, KDTree kdTree) {
 		try {
-			String doc = json.get("document").toString();
+			Document doc = DocumentFabric.fromJson(json.toJSONString());	
+//			String doc = json.get("document").toString();
 			// String className = json.get("class").toString();
 			Object tokens = json.get("tokens");
 			if (tokens == null) {

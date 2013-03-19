@@ -20,7 +20,7 @@ public interface Document extends Writable {
 
 	void setYear(String year);
 
-	<T> T getContext();
+	Object getContext();
 
-	<T> void setContext(T context);
+	void setContext(Object context);
 }

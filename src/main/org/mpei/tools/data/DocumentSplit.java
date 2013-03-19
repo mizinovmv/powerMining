@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.mpei.data.document.Document;
 
 public class DocumentSplit extends InputSplit implements Writable {
 	private Document document;

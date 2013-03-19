@@ -12,7 +12,7 @@ import org.junit.Test;
 
 public class DataModelTest {
 	String path = "test/DataModelTest";
-	static DataModel model;
+	DataModel model;
 	DataOutputStream out;
 	@BeforeClass
 	static public void setUp() throws Exception {

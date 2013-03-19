@@ -46,8 +46,11 @@ public class KnnKdtreeDriver extends AbstractJob {
 	public static int NN = 1;
 	
 	public static void main(String[] args) throws Exception {
+		String[] debug = { "--input", "dataTest", "--output",
+				"KnnKdtreeDriver", "-t", "data",
+				"--overwrite" };
 		while (NN < 146) {
-			ToolRunner.run(new Configuration(), new KnnKdtreeDriver(), args);
+			ToolRunner.run(new Configuration(), new KnnKdtreeDriver(), debug);
 			++NN;
 		}
 	}

@@ -13,8 +13,9 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.util.Version;
+import org.mpei.data.document.Document;
 
-public class DataModelDictionary implements Dictionary {
+public class DataModelDictionary implements IDictionary {
 	private DataModel model;
 	private StandardAnalyzer analyzer = new StandardAnalyzer(Version.LUCENE_36);
 
@@ -76,7 +77,7 @@ public class DataModelDictionary implements Dictionary {
 	public static void main(String[] args) {
 		DataModelBuilder builder = new JsonUrlDataModelBuilder();
 		DataModel model = DataModel.read("dataModel");
-		Dictionary d = new DataModelDictionary(model);
+		IDictionary d = new DataModelDictionary(model);
 		for (String word : d.getWords()) {
 			System.out.println(word);
 		}

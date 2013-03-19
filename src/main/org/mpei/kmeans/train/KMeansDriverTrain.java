@@ -15,16 +15,18 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.common.HadoopUtil;
 import org.apache.mahout.common.commandline.DefaultOptionCreator;
+import org.mpei.data.document.Document;
+import org.mpei.data.document.DocumentFabric;
 import org.mpei.data.document.DocumentInputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KMeansDriverTrain extends AbstractJob{
+public class KMeansDriverTrain extends AbstractJob {
 	private static final Logger LOG = LoggerFactory
 			.getLogger(KMeansDriverTrain.class);
 
-	public int run(String[] args) throws IOException,
-			ClassNotFoundException, InterruptedException {
+	public int run(String[] args) throws IOException, ClassNotFoundException,
+			InterruptedException {
 		addInputOption();
 		addOutputOption();
 		addOption(DefaultOptionCreator.overwriteOption().create());
@@ -37,31 +39,30 @@ public class KMeansDriverTrain extends AbstractJob{
 		if (hasOption(DefaultOptionCreator.OVERWRITE_OPTION)) {
 			HadoopUtil.delete(getConf(), output);
 		}
-		Job job = HadoopUtil.prepareJob(input, output, DocumentInputFormat.class,
-				KMeansMapperTrain.class, Text.class, MapWritable.class,
-				KMeansReducerTrain.class, Text.class, MapWritable.class,
-				TextOutputFormat.class, getConf());
+		Job job = HadoopUtil.prepareJob(input, output,
+				DocumentInputFormat.class, KMeansMapperTrain.class, Text.class,
+				MapWritable.class, KMeansReducerTrain.class, Text.class,
+				Document.class, TextOutputFormat.class, getConf());
 		job.setJobName("KMeansDriverTrain");
 
 		Date startTime = new Date();
-		System.out.println("Job started: " + startTime);
+		LOG.info("Job started: " + startTime);
 
 		int res = job.waitForCompletion(true) ? 0 : 1;
 		Date end_time = new Date();
-		System.out.println("Job ended: " + end_time);
-		System.out.println("The job took "
-				+ (end_time.getTime() - startTime.getTime()) / 1000
-				+ " seconds.");
+		LOG.info("Job ended: " + end_time);
+		LOG.info("The job took " + (end_time.getTime() - startTime.getTime())
+				/ 1000 + " seconds.");
 		return res;
 	}
 
 	public static void main(String[] args) {
-		String[] debug = {"--input","resources","--output","KMeansDriverTrain","--overwrite"}; 
+		String[] debug = { "--input", "data", "--output",
+				"KMeansDriverTrain", "--overwrite" };
 		try {
 			ToolRunner.run(new Configuration(), new KMeansDriverTrain(), debug);
 		} catch (Exception e) {
-			e.printStackTrace();
-			System.out.println(e.getMessage());
+			throw new RuntimeException(e);
 		}
 
 	}

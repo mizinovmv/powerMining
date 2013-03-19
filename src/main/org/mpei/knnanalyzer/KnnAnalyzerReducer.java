@@ -20,7 +20,7 @@ public class KnnAnalyzerReducer extends
 		for (IntWritable val : value) {
 			sum += val.get();
 		}
-		if(sum < 60) {
+		if(sum < 10 || sum > 200) {
 			return;
 		}
 		JSONObject out = new JSONObject();

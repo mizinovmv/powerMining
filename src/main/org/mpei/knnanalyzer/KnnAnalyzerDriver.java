@@ -12,21 +12,23 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.lib.reduce.IntSumReducer;
 import org.json.simple.parser.JSONParser;
+import org.mpei.data.document.DocumentInputFormat;
 import org.mpei.json.JsonInputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KnnAnalyzerDriver {
-	
-	private static final Logger log = LoggerFactory.getLogger(KnnAnalyzerDriver.class);
-	
+
+	private static final Logger LOG = LoggerFactory
+			.getLogger(KnnAnalyzerDriver.class);
+
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
 		if (args.length != 1) {
-			log.error("Usage: KnnAnalyzer <in> <out>");
+			LOG.error("Usage: KnnAnalyzer <in>");
 			System.exit(2);
 		}
-//		conf.set("knnmapper.textoutputformat.separator", ".");
+
 		Job job = new Job(conf, "knnAnalyzer");
 		job.setJarByClass(KnnAnalyzerDriver.class);
 		job.setOutputKeyClass(Text.class);
@@ -34,8 +36,8 @@ public class KnnAnalyzerDriver {
 		job.setMapperClass(KnnAnalyzerMapper.class);
 		job.setCombinerClass(IntSumReducer.class);
 		job.setReducerClass(KnnAnalyzerReducer.class);
-		
-		job.setInputFormatClass(JsonInputFormat.class);
+
+		job.setInputFormatClass(DocumentInputFormat.class);
 		job.setOutputFormatClass(TextOutputFormat.class);
 
 		FileInputFormat.setInputPaths(job, new Path(args[0]));
@@ -44,14 +46,14 @@ public class KnnAnalyzerDriver {
 		outPath.getFileSystem(conf).delete(outPath, true);
 
 		Date startTime = new Date();
-		log.info("Job started: " + startTime);
+		LOG.info("Job started: " + startTime);
 		int res = job.waitForCompletion(true) ? 0 : 1;
 		Date end_time = new Date();
-		log.info("Job ended: " + end_time);
-		log.info("The job took " + (end_time.getTime() - startTime.getTime())
+		LOG.info("Job ended: " + end_time);
+		LOG.info("The job took " + (end_time.getTime() - startTime.getTime())
 				/ 1000 + " seconds.");
 		if (res != 0) {
-			log.error("Complete with error");
+			LOG.error("Complete with error");
 		}
 	}
 }

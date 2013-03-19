@@ -66,8 +66,9 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 							+ URLEncoder.encode(label.toString(), "UTF-8"));
 					JsonObject transElement = (JsonObject)parser.parse(getTransResult);
 					if (transElement.get(TAG_LANG).getAsString().equals(langEnum.lang)) {
-						labels.add(labelObj.get(TAG_LABEL).getAsString());
-						LOG.info(labelObj.get(TAG_LABEL).toString());
+						String l = labelObj.get(TAG_LABEL).getAsString();
+						labels.add(l);
+						LOG.info(l);
 					}
 				}
 			}
@@ -79,6 +80,7 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 				JsonElement attributesElement = parser.parse(getDocumentResult);
 				JsonArray attrsJson = attributesElement.getAsJsonArray();
 				Document[] docs = new Document[attrsJson.size()];
+				LOG.info(String.valueOf(attrsJson.size()));
 				int i = 0;
 				for (JsonElement attr : attrsJson) {
 					if (attr.isJsonObject()) {

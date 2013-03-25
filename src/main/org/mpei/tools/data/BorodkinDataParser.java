@@ -40,6 +40,7 @@ public class BorodkinDataParser {
 
 	public static final String REGEX_TITTLE = "(" + TAG_TITTLE + ")(.+)";
 	public static final String REGEX_ABSTRACT = "(" + TAG_ABSTRACT + ")(.+)";
+	public static final String REGEX_WORD = "\\w+";
 
 	public static final String TAG_ROOT = "documents";
 	public static final String TAG_DOCUMENT = "document";
@@ -164,15 +165,25 @@ public class BorodkinDataParser {
 					} else if (strLine.contains(TAG_TITTLE)) {
 						splitString[2] = strLine.replace(TAG_TITTLE, "");
 					} else if (strLine.contains(TAG_ABSTRACT)) {
-						splitString[3] = strLine.replace(TAG_ABSTRACT,"");
-						splitString[3] = strLine.replace(Matcher.quoteReplacement("&#12;"), "");
+						strLine = strLine.replace(TAG_ABSTRACT, "");
+						List<String> words = Arrays.asList(strLine.split("[ ;.]"));
+						StringBuilder strBuilder = new StringBuilder();
+						Pattern pattern = Pattern.compile(REGEX_WORD);
+						for (String word : words) {
+							Matcher m = pattern.matcher(word);
+							if (m.matches()) {
+								strBuilder.append(word);
+//								strBuilder.append(" ");
+							}
+						}
+						splitString[3] = strBuilder.toString();
 						List<String> list = new ArrayList<String>(
 								Arrays.asList(splitString));
 						Element docElement = documents[num]
 								.createElement(TAG_DOCUMENT);
 						Element doc = documents[num].getDocumentElement();
 						doc.appendChild(docElement);
-						documents[num].createTextNode("/n");
+//						documents[num].createTextNode("/n");
 						int i = 0;
 						for (String tag : tags) {
 							// System.out.println(splitString[i]);
@@ -182,9 +193,11 @@ public class BorodkinDataParser {
 							}
 							Element element = documents[num].createElement(tag);
 							docElement.appendChild(element);
-							
+
 							element.appendChild(documents[num]
 									.createTextNode(line));
+//							element.appendChild(documents[num]
+//									.createTextNode("/n"));
 							++i;
 						}
 					}
@@ -219,18 +232,17 @@ public class BorodkinDataParser {
 			e.printStackTrace();
 			System.exit(1);
 		}
-//		try {
-//			 XMLInputFactory inputFactory = XMLInputFactory.newInstance();
-//		     XMLStreamReader reader = inputFactory
-//		                     .createXMLStreamReader(new FileReader(
-//		                                     "/home/work/git/powerMining/resources/borodkin/Agents_Multi-agentSystems.xml"));
-//		     while (reader.hasNext()) {
-//		             reader.next();
-//		     }
-//		} catch (Exception e) {
-//			throw new RuntimeException(e);
-//		}
-		
+		// try {
+		// XMLInputFactory inputFactory = XMLInputFactory.newInstance();
+		// XMLStreamReader reader = inputFactory
+		// .createXMLStreamReader(new FileReader(
+		// "/home/work/git/powerMining/resources/borodkin/Agents_Multi-agentSystems.xml"));
+		// while (reader.hasNext()) {
+		// reader.next();
+		// }
+		// } catch (Exception e) {
+		// throw new RuntimeException(e);
+		// }
 
 	}
 }

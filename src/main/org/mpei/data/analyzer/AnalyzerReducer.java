@@ -1,6 +1,12 @@
 package org.mpei.data.analyzer;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -14,11 +20,19 @@ public class AnalyzerReducer extends Reducer<Text, Text, Text, Text> {
 	protected void reduce(Text key, Iterable<Text> value,
 			Reducer<Text, Text, Text, Text>.Context context)
 			throws IOException, InterruptedException {
-		// dictionary
+		List<String> list = new ArrayList<String>();
+		String str = null;
+		for (Text v : value) {
+			str = v.toString();
+			if(list.contains(str)) {
+				continue;
+			}
+			list.add(str);
+		}
 		JsonObject obj = new JsonObject();
 		JsonArray array = new JsonArray();
-		for (Text v : value) {
-			array.add(new JsonPrimitive(v.toString()));
+		for (String v : list) {
+			array.add(new JsonPrimitive(v));
 		}
 		obj.add("words", array);
 		obj.addProperty("className",key.toString());

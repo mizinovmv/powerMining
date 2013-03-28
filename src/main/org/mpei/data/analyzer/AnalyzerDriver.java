@@ -25,7 +25,7 @@ public class AnalyzerDriver {
 	public static void run(String[] args) throws Exception {
 		Configuration conf = new Configuration();
 		if (args.length != 1) {
-			LOG.error("Usage: KnnAnalyzer <in>");
+			LOG.error("Usage: Analyzer <in>");
 			System.exit(1);
 		}
 		Job job = new Job(conf, "Analyzer");

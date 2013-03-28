@@ -26,8 +26,10 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.common.HadoopUtil;
 import org.apache.mahout.common.commandline.DefaultOptionCreator;
+import org.mpei.data.document.DocumentFabric;
 import org.mpei.data.document.DocumentInputFormat;
 import org.mpei.json.JsonInputFormat;
+import org.mpei.kmeans.KMeansDriver;
 import org.mpei.knn.step2.Mapper2;
 import org.mpei.knn.step2.Reducer2;
 import org.slf4j.Logger;
@@ -41,27 +43,17 @@ public class KnnDriver extends AbstractJob {
 	public static final String TOKEN_CASHE = "mapred.conf.tokencashe";
 	public static final String TRAIN = "mapred.conf.train";
 	public static final String METRIC = "mapred.conf.metric";
-	public static int NN = 1;
-
-	public static void main(String[] args) throws Exception {
-		String[] debug = { "--input", "dataTest", "--output", "KnnDriver",
-				"-t", "data", "--overwrite", "-tc", "Analyzer/part-r-00000" };
-		while (NN < 145) {
-			ToolRunner.run(new Configuration(), new KnnDriver(), debug);
-			++NN;
-		}
-	}
+	public static final String TOKEN_SIZE = "mapred.conf.tokensize";
 
 	public int run(String[] args) throws Exception {
 		addInputOption();
 		addOutputOption();
 		addOption(DefaultOptionCreator.overwriteOption().create());
-		addOption(KnnDriver.TOKEN_CASHE, "tc", "Path with token's vocabulary.",
-				"./");
-		addOption(KnnDriver.NEIGHBORS, "nn",
-				"number of search nearest neghbors.", "1");
-		addOption(KnnDriver.TRAIN, "t", "train data.", "./");
-		addOption(KnnDriver.METRIC, "m", "Metric type.", "2");
+		addOption(TOKEN_CASHE, "tc", "Path with token's vocabulary.", null);
+		addOption(NEIGHBORS, "nn", "number of search nearest neghbors.", "1");
+		addOption(TRAIN, "t", "train data.", null);
+		addOption(METRIC, "m", "Metric type.", "2");
+		addOption(TOKEN_SIZE, "ts", "Token size.", "0");
 		Map<String, List<String>> parsedArgs = parseArguments(args);
 		if (parsedArgs == null) {
 			return -1;
@@ -81,63 +73,15 @@ public class KnnDriver extends AbstractJob {
 		job.getConfiguration().set(TOKEN_CASHE, getOption(TOKEN_CASHE));
 		job.getConfiguration().set(TRAIN, getOption(TRAIN));
 		job.getConfiguration().set(METRIC, getOption(METRIC));
-		job.getConfiguration().set(NEIGHBORS, String.valueOf(NN));
+		job.getConfiguration().set(NEIGHBORS, getOption(NEIGHBORS));
+		job.getConfiguration().set(TOKEN_SIZE, getOption(TOKEN_SIZE));
 
-		cacheTrainData(job.getConfiguration());
+		DocumentFabric.cacheTrainData(job.getConfiguration(), TRAIN);
 		URI uriTokens = new Path(job.getConfiguration().get(TOKEN_CASHE))
 				.toUri();
 		DistributedCache.addCacheFile(uriTokens, job.getConfiguration());
 
 		boolean succeeded = job.waitForCompletion(true);
-
-		logReadable(job, output);
 		return succeeded ? 0 : -1;
-	}
-
-	void cacheTrainData(Configuration conf) throws IOException {
-		FileSystem fs = FileSystem.get(conf);
-		Path hdfsPath = new Path(conf.get(TRAIN));
-		FileStatus[] status = fs.listStatus(hdfsPath);
-		for (FileStatus st : status) {
-			try {
-				DistributedCache.addCacheFile(new URI(st.getPath().toString()),
-						conf);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
-
-	private void logReadable(Job job, Path output) throws IOException {
-		FileSystem fs = null;
-		BufferedReader buffReader = null;
-		BufferedWriter buffWriter = null;
-		FileWriter fstream = new FileWriter("error.txt", true);
-		try {
-			fs = FileSystem.get(job.getConfiguration());
-			FSDataInputStream fsIn = fs
-					.open(new Path(output + "/part-r-00000"));
-			buffReader = new BufferedReader(new InputStreamReader(fsIn));
-			buffWriter = new BufferedWriter(fstream);
-			String line = null;
-			double[] values = new double[2];
-			int count = 0;
-			while ((line = buffReader.readLine()) != null) {
-				String[] tmp = line.split("\t");
-				values[count] = Double.valueOf(tmp[1]);
-				++count;
-			}
-			int NN = Integer.valueOf(job.getConfiguration().get(NEIGHBORS));
-			buffWriter.write(String.valueOf(NN) + "\t"
-					+ String.valueOf(values[0] / (values[0] + values[1]))
-					+ "\n");
-		} catch (Exception e) {
-			LOG.error(e.getMessage());
-			e.printStackTrace();
-		} finally {
-			buffReader.close();
-			buffWriter.close();
-			fs.close();
-		}
 	}
 }

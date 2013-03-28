@@ -5,11 +5,21 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.net.URI;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.mpei.tools.data.Dictionary;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -21,6 +31,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.internal.StringMap;
 
 /**
  * Document fabric with Gson serialization.
@@ -75,7 +86,76 @@ public class DocumentFabric {
 	 * @return {@link Document}
 	 */
 	public static Document fromJson(String json) {
-		return gson.fromJson(json, BaseDocument.class);
+		Document doc = gson.fromJson(json, BaseDocument.class);
+		if (doc == null) {
+			throw new RuntimeException();
+		}
+		return doc;
+	}
+
+	public static double[] getTokensFreq(Document doc, Dictionary dictionary) {
+		StringMap<Double> map = (StringMap<Double>) doc.getContext();
+		List<String> dict = dictionary.get(doc.getClassName());
+		// List<String> dict = dictionary.getAll();
+		double[] docV = new double[dictionary.getAll().size()];
+		int index = 0;
+		for (Map.Entry<String, Double> entry : map.entrySet()) {
+			if ((index = dict.indexOf(entry.getKey())) < 0) {
+				continue;
+			}
+			if (index < dictionary.getAll().size()) {
+				docV[index] = entry.getValue();
+			}
+		}
+		return docV;
+	}
+
+	public static double[] getAllTokensFreq(Document doc, Dictionary dictionary) {
+		StringMap<Double> map = (StringMap<Double>) doc.getContext();
+		List<String> dict = dictionary.getAll();
+		double[] docV = new double[dictionary.getAll().size()];
+		int index = 0;
+		for (Map.Entry<String, Double> entry : map.entrySet()) {
+			if ((index = dict.indexOf(entry.getKey())) < 0) {
+				continue;
+			}
+			docV[index] = entry.getValue();
+
+		}
+		return docV;
+	}
+
+	public static double[] getTokensRound(Document doc, Dictionary dictionary,
+			int delimiter) {
+		StringMap<Double> map = (StringMap<Double>) doc.getContext();
+		// List<String> dict = dictionary.get(doc.getClassName());
+		List<String> dict = dictionary.getAll();
+		double[] docV = new double[dictionary.getAll().size()];
+		int index = 0;
+		for (Map.Entry<String, Double> entry : map.entrySet()) {
+			if ((index = dict.indexOf(entry.getKey())) < 0) {
+				continue;
+			}
+			double r = BigDecimal.valueOf(entry.getValue())
+					.setScale(delimiter, BigDecimal.ROUND_DOWN).doubleValue();
+			docV[index] = r;
+		}
+		return docV;
+	}
+
+	public static void cacheTrainData(Configuration conf, String train)
+			throws IOException {
+		FileSystem fs = FileSystem.get(conf);
+		Path hdfsPath = new Path(conf.get(train));
+		FileStatus[] status = fs.listStatus(hdfsPath);
+		for (FileStatus st : status) {
+			try {
+				DistributedCache.addCacheFile(new URI(st.getPath().toString()),
+						conf);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 	/**

@@ -3,6 +3,7 @@ package org.mpei.tools.data;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +35,7 @@ public class Dictionary {
 		return tokensInd.get(key);
 	}
 
-	public void loadTokens(Path cachePath, int size) throws IOException {
+	public void loadTokens(URI cachePath, int size) throws IOException {
 		BufferedReader reader = new BufferedReader(new FileReader(
 				cachePath.toString()));
 		try {

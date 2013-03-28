@@ -34,8 +34,7 @@ public class KMeansDriver extends AbstractJob {
 	public static final String MEANS_PATH = "mapred.conf.means";
 	public static final String TOKEN_CASHE = "mapred.conf.tokencashe";
 	public static final String METRIC = "mapred.conf.metric";
-	
-	static int loop = 0;
+	public static final String TOKEN_SIZE = "mapred.conf.tokensize";
 
 	public int run(String[] args) throws IOException, ClassNotFoundException,
 			InterruptedException {
@@ -47,6 +46,7 @@ public class KMeansDriver extends AbstractJob {
 		addOption(KMeansDriver.TOKEN_CASHE, "tc",
 				"Path with token's vocabulary.", "knnAnalyzer/part-r-00000");
 		addOption(KMeansDriver.METRIC, "m", "Metric type.", "2");
+		addOption(KMeansDriver.TOKEN_SIZE, "ts", "Token size.", "0");
 		Map<String, List<String>> parsedArgs = parseArguments(args);
 		if (parsedArgs == null) {
 			return -1;
@@ -64,6 +64,7 @@ public class KMeansDriver extends AbstractJob {
 		job.getConfiguration().set(MEANS_PATH, getOption(MEANS_PATH));
 		job.getConfiguration().set(TOKEN_CASHE, getOption(TOKEN_CASHE));
 		job.getConfiguration().set(METRIC, getOption(METRIC));
+		job.getConfiguration().set(TOKEN_SIZE, getOption(TOKEN_SIZE));
 		cacheCntroids(job.getConfiguration());
 
 		URI uriTokens = new Path(job.getConfiguration().get(TOKEN_CASHE))
@@ -102,48 +103,5 @@ public class KMeansDriver extends AbstractJob {
 		// fs.copyFromLocalFile(false, true, new Path(LOCAL_STOPWORD_LIST),
 		// hdfsPath);
 
-	}
-
-	public static void main(String[] args) throws IOException {
-		BufferedWriter writer = null;
-		BufferedReader reader = null;
-		String[] debug = { "--input", "dataTest", "--output", "KMeansDriver",
-				"-means", "KMeansDriverTrain", "--overwrite", "-tc",
-				"Analyzer/part-r-00000" };
-		KMeansDriver.loop = 10000;
-		while (loop < 20000) {
-			KMeansDriver.loop = KMeansDriver.loop + 100;
-			try {
-				ToolRunner.run(new Configuration(), new KMeansDriver(), debug);
-				reader = new BufferedReader(new FileReader(
-						"KMeansDriver/part-r-00000"));
-				writer = new BufferedWriter(new FileWriter("result", true));
-				String line = null;
-				writer.write(KMeansDriver.loop);
-				while ((line = reader.readLine()) != null) {
-					System.out.println(line);
-					writer.write(line);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new RuntimeException(e);
-			} finally {
-				writer.close();
-				reader.close();
-			}
-		}
-		
-		
-//		BufferedReader reader = new BufferedReader(new FileReader("result"));
-//		BufferedWriter writer = new BufferedWriter(new FileWriter("result2", true));
-//		String line = null;
-//		while ((line = reader.readLine()) != null) {
-//			String loop = line;
-//			double knnFalse = Double.valueOf(reader.readLine().split("\t")[1]);
-//			double knnTrue = Double.valueOf(reader.readLine().split("\t")[1]);
-//			writer.write(loop + " " + (knnFalse/(knnFalse + knnTrue)) + "\n");
-//		}
-//		writer.close();
-//		reader.close();
 	}
 }

@@ -3,36 +3,23 @@ package org.mpei.knn;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.math.BigDecimal;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.hadoop.filecache.DistributedCache;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Mapper.Context;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.mahout.common.distance.DistanceMeasure;
-import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.common.distance.MinkowskiDistanceMeasure;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.mpei.data.document.Document;
 import org.mpei.data.document.DocumentFabric;
 import org.mpei.kmeans.KMeansDriver;
@@ -51,25 +38,25 @@ public class KnnMapper extends
 	private static final Timer TIMER = new Timer();
 	private static final IntWritable ONE = new IntWritable(1);
 
-	private static Dictionary dictionary;
-	private static List<Map.Entry<double[], String>> trainData;
+	private Dictionary dictionary;
+	private List<Map.Entry<double[], String>> trainData;
 
 	@Override
 	protected void setup(
 			Mapper<LongWritable, Document, Text, IntWritable>.Context context)
 			throws java.io.IOException, InterruptedException {
-		if (trainData != null && dictionary != null) {
-			return;
-		}
 		Path[] cacheFiles = DistributedCache.getLocalCacheFiles(context
 				.getConfiguration());
 		if (null != cacheFiles && cacheFiles.length > 0) {
+			dictionary = new Dictionary();
 			for (Path cachePath : cacheFiles) {
 				if (cachePath.toString().contains(
 						context.getConfiguration()
-								.get(KMeansDriver.TOKEN_CASHE))) {
-					dictionary = new Dictionary();
-					dictionary.loadTokens(cachePath, 6500);
+								.get(KnnDriver.TOKEN_CASHE))) {
+					String size = context.getConfiguration().get(
+							KMeansDriver.TOKEN_SIZE);
+					dictionary.loadTokens(cachePath.toUri(),
+							Integer.valueOf(size));
 				}
 			}
 			String name = context.getConfiguration().get(KnnDriver.TRAIN);
@@ -143,23 +130,24 @@ public class KnnMapper extends
 		try {
 			if (trainData == null) {
 				trainData = new ArrayList<Map.Entry<double[], String>>();
-			}
+			} 
 			String line = null;
 			Document doc = null;
 			while ((line = reader.readLine()) != null) {
 				doc = DocumentFabric.fromJson(line);
-				StringMap<Double> map = (StringMap<Double>) doc.getContext();
-				List<String> dict = dictionary.getAll();
-				// List<String> dict = dictionary.get(doc.getClassName());
-				// Vector docV = new DenseVector(dictionary.getAll().size());
-				double[] docV = new double[dict.size()];
-				int index = 0;
-				for (Map.Entry<String, Double> entry : map.entrySet()) {
-					if ((index = dict.indexOf(entry.getKey())) < 0) {
-						continue;
-					}
-					docV[index] = entry.getValue();
-				}
+//				StringMap<Double> map = (StringMap<Double>) doc.getContext();
+//				List<String> dict = dictionary.getAll();
+//				// List<String> dict = dictionary.get(doc.getClassName());
+//				// Vector docV = new DenseVector(dictionary.getAll().size());
+//				double[] docV = new double[dict.size()];
+//				int index = 0;
+//				for (Map.Entry<String, Double> entry : map.entrySet()) {
+//					if ((index = dict.indexOf(entry.getKey())) < 0) {
+//						continue;
+//					}
+//					docV[index] = entry.getValue();
+//				}
+				double[] docV = DocumentFabric.getTokensFreq(doc, dictionary);
 				trainData.add(new AbstractMap.SimpleEntry<double[], String>(
 						docV, doc.getClassName()));
 			}
@@ -177,7 +165,7 @@ public class KnnMapper extends
 				KnnDriver.NEIGHBORS));
 		double mL = Double.valueOf(context.getConfiguration().get(
 				KnnDriver.METRIC));
-
+		
 		// StringMap<Double> map = (StringMap<Double>) value.getContext();
 		// // List<String> dict = dictionary.getAll();
 		// List<String> dict = dictionary.get(value.getClassName());
@@ -194,31 +182,38 @@ public class KnnMapper extends
 
 		NearestNeighborList nnl = new NearestNeighborList(nn);
 		DistanceMeasure metric = new MinkowskiDistanceMeasure(mL);
-
-		StringMap<Double> map = (StringMap<Double>) value.getContext();
-		Map<String, Vector> cache = new HashMap<String, Vector>();
-		int index = 0;
+		double[] docV = DocumentFabric.getTokensFreq(value, dictionary);
+		Vector v = new DenseVector(docV);
 		for (Map.Entry<double[], String> doc : trainData) {
-			Vector v = cache.get(doc.getValue());
-			if (v == null) {
-//				List<String> dict = dictionary.get(doc.getValue());
-				List<String> dict = dictionary.getAll();
-				v = new DenseVector(dict.size());
-				for (Map.Entry<String, Double> entry : map.entrySet()) {
-//					if (dict.contains(entry.getKey())) {
-//						int index = dict.indexOf(entry.getKey());
-//						v.set(index, entry.getValue());
-//					}
-					if((index = dict.indexOf(entry.getKey())) < 0) {
-						continue;
-					}
-					v.set(index, entry.getValue());
-				}
-				cache.put(doc.getValue(), v);
-			}
 			double priority = metric.distance(v, new DenseVector(doc.getKey()));
 			nnl.insert(doc.getValue(), priority);
 		}
+//		StringMap<Double> map = (StringMap<Double>) value.getContext();
+//		Map<String, Vector> cache = new HashMap<String, Vector>();
+//		int index = 0;
+//		for (Map.Entry<double[], String> doc : trainData) {
+//			Vector v = cache.get(doc.getValue());
+//			if (v == null) {
+////				List<String> dict = dictionary.get(doc.getValue());
+//				List<String> dict = dictionary.getAll();
+//				v = new DenseVector(dict.size());
+//				for (Map.Entry<String, Double> entry : map.entrySet()) {
+////					if (dict.contains(entry.getKey())) {
+////						int index = dict.indexOf(entry.getKey());
+////						v.set(index, entry.getValue());
+////					}
+//					if((index = dict.indexOf(entry.getKey())) < 0) {
+//						continue;
+//					}
+//					v.set(index, entry.getValue());
+//				}
+//				
+//				v = new DenseVector(docV);
+//				cache.put(doc.getValue(), v);
+//			}
+//			double priority = metric.distance(v, new DenseVector(doc.getKey()));
+//			nnl.insert(doc.getValue(), priority);
+//		}
 		Map<String, Integer> labels = new TreeMap<String, Integer>();
 		for (int i = 0; i < nn; ++i) {
 			String nbClass = (String) nnl.removeHighest();

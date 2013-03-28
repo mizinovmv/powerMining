@@ -10,59 +10,30 @@ import org.mpei.data.analyzer.AnalyzerDriver;
 import org.mpei.tools.data.DataModelAnalyzer.Weight;
 
 public class DataModelAnalyzerTest extends Assert {
+	static final String pathModel = "dataModel";
+	static final String pathTokenModel = "tokenDataModel";
+	static final String pathJsonModel = "tfCoolga";
+	static final String pathJsonModelTest = "tfCoolgaTest";
 
+	static final String pathXmlBorodkin = "resources/borodkin/";
+	static final String pathXmlCoolga = "resources/coolga/";
+	static final String pathXmlMizinov = "resources/mizinov/";
 	@Test
-	public void test() {
-		String pathModel = "dataModel";
-		String pathTokenModel = "tokenDataModel";
-		String pathJsonModel = "data";
-		String pathJsonModelTest = "dataTest";
-		DataOutputStream out = null;
-		// JsonUrlDataModelBuilder builder = new JsonUrlDataModelBuilder();
-		// DataModel model = builder
-		// .build("https://classification-mizinov.rhcloud.com/api/");
-		// try {
-		// FileOutputStream fstream = new FileOutputStream(new File(pathModel));
-		// out = new DataOutputStream(fstream);
-		// // model.write(out);
-		// } catch (Exception e) {
-		// throw new RuntimeException(e);
-		// }
+	public void testTf() {
+	
 		XmlDataModelBuilder builderXml = new XmlDataModelBuilder();
-		DataModel model = builderXml.build("coolga");
+		DataModel model = builderXml.build(pathXmlCoolga, 0);
 		assertNotNull(model);
-		// DataModel model = DataModel.read(pathModel);
+
 		DataModelAnalyzer analyzer = new DataModelAnalyzer(model);
-		DataModel tokenModel = analyzer.build(Weight.TF, true, 50);
-//		try {
-//			FileOutputStream fstream = new FileOutputStream(new File(
-//					pathTokenModel));
-//			out = new DataOutputStream(fstream);
-//			tokenModel.write(out);
-//		} catch (Exception e) {
-//			throw new RuntimeException(e);
-//		}
-		// DataModel tokenModel = DataModel.read(pathTokenModel);
+		DataModel tokenModel = analyzer.build(DataModelAnalyzer.Weight.TF,
+				true, 0);
 		assertNotNull(tokenModel);
 		DataModelSpliter spliter = new DataModelSpliter(tokenModel, 80);
+		assertNotNull(spliter);
+		assertNotNull(spliter.getTestData());
+		assertNotNull(spliter.getTrainingData());
 		DataModelAnalyzer.toJSON(spliter.getTestData(), pathJsonModelTest);
 		DataModelAnalyzer.toJSON(spliter.getTrainingData(), pathJsonModel);
-		String[] debug = { "data" };
-		try {
-			AnalyzerDriver.run(debug);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-		
-		new File(pathJsonModel).delete();
-		new File(pathJsonModel).delete();
-		// DataModel jsonModel = new DataModel();
-		// try {
-		// DataModelAnalyzer.fromJSON(jsonModel, pathJsonModel);
-		// } catch (Exception e) {
-		// throw new RuntimeException(e);
-		// }
-		// assertEquals(tokenModel, jsonModel);
 	}
-
 }

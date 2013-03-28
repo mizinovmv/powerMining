@@ -26,54 +26,45 @@ public class KMeansDriverTest {
 
 	@Test
 	public void testRun() {
-		String pathModel = "dataModel";
-		String pathTokenModel = "tokenDataModel";
-		String pathJsonModel = "data";
-		String pathJsonModelTest = "dataTest";
+		String data = "tfCoolga";
+		String dataTest = "tfCoolgaTest";
 
-//		XmlDataModelBuilder builderXml = new XmlDataModelBuilder();
-//		DataModel model = builderXml.build("coolga");
-//		assertNotNull(model);
-//
-//		DataModelAnalyzer analyzer = new DataModelAnalyzer(model);
-//		DataModel tokenModel = analyzer.build(DataModelAnalyzer.Weight.TFIDF,
-//				true, 0);
-//		assertNotNull(tokenModel);
-//		DataModelSpliter spliter = new DataModelSpliter(tokenModel, 80);
-//
-//		DataModelAnalyzer.toJSON(spliter.getTestData(), pathJsonModelTest);
-//		DataModelAnalyzer.toJSON(spliter.getTrainingData(), pathJsonModel);
-
-		String[] AnalyzerDriverDebug = { "data" };
-		String[] KMeansDriverTrainDebug = { "--input", "data", "--output",
+		String[] AnalyzerDriverDebug = { data };
+		String[] KMeansDriverTrainDebug = { "--input", data, "--output",
 				"KMeansDriverTrain", "--overwrite" };
-		String[] debug = { "--input", "dataTest", "--output", "KMeansDriver",
-				"-means", "KMeansDriverTrain", "--overwrite", "-tc",
-				"Analyzer/part-r-00000" };
+
 		BufferedWriter writer = null;
 		BufferedReader reader = null;
 		try {
 			AnalyzerDriver.run(AnalyzerDriverDebug);
-			ToolRunner.run(new Configuration(), new KMeansDriverTrain(),
-					KMeansDriverTrainDebug);
-			ToolRunner.run(new Configuration(), new KMeansDriver(), debug);
+			int i = -50;
+			while (i < 10000) {
+				i += 50;
+				String[] debug = { "--input", dataTest, "--output",
+						"KMeansDriver", "-means", "KMeansDriverTrain",
+						"--overwrite", "-tc", "Analyzer/part-r-00000", "-ts",
+						String.valueOf(i) };
+				ToolRunner.run(new Configuration(), new KMeansDriverTrain(),
+						KMeansDriverTrainDebug);
+				ToolRunner.run(new Configuration(), new KMeansDriver(), debug);
 
-			reader = new BufferedReader(new FileReader(
-					"KMeansDriver/part-r-00000"));
-			writer = new BufferedWriter(
-					new FileWriter("KMeansDriverTest", true));
-			String line = null;
-			double[] values = new double[2];
-			int count = 0;
-			while ((line = reader.readLine()) != null) {
-				String[] tmp = line.split("\t");
-				values[count] = Double.valueOf(tmp[1]);
-				++count;
+				reader = new BufferedReader(new FileReader(
+						"KMeansDriver/part-r-00000"));
+				writer = new BufferedWriter(new FileWriter("KMeansDriverTest",
+						true));
+				String line = null;
+				double[] values = new double[2];
+				int count = 0;
+				while ((line = reader.readLine()) != null) {
+					String[] tmp = line.split("\t");
+					values[count] = Double.valueOf(tmp[1]);
+					++count;
+				}
+				writer.write(String.valueOf(i) + "\t"
+						+ String.valueOf(values[0] / (values[0] + values[1]))
+						+ "\n");
+				writer.flush();
 			}
-			writer.write(String.valueOf(0) + "\t"
-					+ String.valueOf(values[0] / (values[0] + values[1]))
-					+ "\n");
-
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -89,5 +80,6 @@ public class KMeansDriverTest {
 			}
 
 		}
+
 	}
 }

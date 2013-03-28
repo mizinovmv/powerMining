@@ -363,7 +363,7 @@ public class DataModelAnalyzer {
 		DataOutputStream out = null;
 		JsonUrlDataModelBuilder builder = new JsonUrlDataModelBuilder();
 		DataModel model = builder
-				.build("https://classification-mizinov.rhcloud.com/api/");
+				.build("https://classification-mizinov.rhcloud.com/api/",10);
 		try {
 			FileOutputStream fstream = new FileOutputStream(new File(pathModel));
 			out = new DataOutputStream(fstream);

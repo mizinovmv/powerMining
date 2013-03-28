@@ -30,7 +30,7 @@ import org.w3c.dom.Element;
 import com.sun.org.apache.xerces.internal.parsers.DOMParser;
 
 public class BorodkinDataParser {
-	public static final String PATH = "/home/work/Dropbox/magistr/EnglishData";
+	public static final String PATH = "/home/dom/Dropbox/magistr/EnglishData/RI";
 	public static final DocumentBuilderFactory docFactory = DocumentBuilderFactory
 			.newInstance();
 	public static final String TAG_CLASS_NAMES = "ClNames:";
@@ -48,60 +48,6 @@ public class BorodkinDataParser {
 	private static DocumentBuilder docBuilder;
 	private final String[] tags = new String[] { "year", "authors", "title",
 			"content" };
-
-	private void xmlWrite(String className, List<String> list) {
-		// String tmp = list.get(2);
-		// if (tmp.length() == 0 && tmp.equals("Without Abstract")) {
-		// return;
-		// }
-		// // int j = 0;
-		// // for (String attr : list) {
-		// // System.out.println(String.valueOf(j) + " "+attr);
-		// // j++;
-		// // }
-		// Document document = docBuilder.newDocument();
-		// Element rootElement = document.createElement(TAG_ROOT);
-		// document.appendChild(rootElement);
-		// Element docElement = document.createElement(TAG_DOCUMENT);
-		// rootElement.appendChild(docElement);
-		// int i = 0;
-		// for (String tag : tags) {
-		// // System.out.println(splitString[i]);
-		// String line = list.get(i);
-		// if (line == null) {
-		// line = "";
-		// }
-		// Element element = document.createElement(tag);
-		// docElement.appendChild(element);
-		// element.appendChild(document.createTextNode(line));
-		// ++i;
-		// }
-		// try {
-		// TransformerFactory transformerFactory = TransformerFactory
-		// .newInstance();
-		// Transformer transformer = transformerFactory.newTransformer();
-		// DOMSource source = new DOMSource(document);
-		// transformer.transform(source, result);
-		// } catch (Exception e) {
-		// throw new RuntimeException(e);
-		// }
-	}
-
-	private void toFile() throws Exception {
-		// write the content into xml file
-		TransformerFactory transformerFactory = TransformerFactory
-				.newInstance();
-		Transformer transformer = null;
-		try {
-			// transformer = transformerFactory.newTransformer();
-			// DOMSource source = new DOMSource(document);
-			// //Output to console for testing
-			// StreamResult result = new StreamResult(System.out);
-			// transformer.transform(source, result);
-		} catch (Exception e) {
-			throw e;
-		}
-	}
 
 	public void parse() {
 		File directory = new File(BorodkinDataParser.PATH);
@@ -144,16 +90,23 @@ public class BorodkinDataParser {
 						results = new StreamResult[classNames.length];
 						documents = new Document[classNames.length];
 						for (String name : classNames) {
-
-							FileWriter writer = new FileWriter(
-									"resources/borodkin/"
-											+ name.trim().replace(" ", "_")
-											+ ".xml", true);
+							if(documents[i] != null) {
+								++i;
+								continue;
+							}
+							String nameFile = "resources/borodkin/"
+									+ name.trim().replace(" ", "_") + ".xml";
+							File fileXml = new File(nameFile);
+							if(fileXml.exists()) {
+								documents[i] = docBuilder.parse(fileXml);
+							} else {
+								documents[i] = docBuilder.newDocument();
+								Element rootElement = documents[i]
+										.createElement(TAG_ROOT);
+								documents[i].appendChild(rootElement);
+							}
+							FileWriter writer = new FileWriter(nameFile);
 							results[i] = new StreamResult(writer);
-							documents[i] = docBuilder.newDocument();
-							Element rootElement = documents[i]
-									.createElement(TAG_ROOT);
-							documents[i].appendChild(rootElement);
 							++i;
 						}
 
@@ -166,14 +119,15 @@ public class BorodkinDataParser {
 						splitString[2] = strLine.replace(TAG_TITTLE, "");
 					} else if (strLine.contains(TAG_ABSTRACT)) {
 						strLine = strLine.replace(TAG_ABSTRACT, "");
-						List<String> words = Arrays.asList(strLine.split("[ ;.]"));
+						List<String> words = Arrays.asList(strLine
+								.split("[ ;.]"));
 						StringBuilder strBuilder = new StringBuilder();
 						Pattern pattern = Pattern.compile(REGEX_WORD);
 						for (String word : words) {
 							Matcher m = pattern.matcher(word);
 							if (m.matches()) {
 								strBuilder.append(word);
-//								strBuilder.append(" ");
+								strBuilder.append(" ");
 							}
 						}
 						splitString[3] = strBuilder.toString();
@@ -183,7 +137,7 @@ public class BorodkinDataParser {
 								.createElement(TAG_DOCUMENT);
 						Element doc = documents[num].getDocumentElement();
 						doc.appendChild(docElement);
-//						documents[num].createTextNode("/n");
+						// documents[num].createTextNode("/n");
 						int i = 0;
 						for (String tag : tags) {
 							// System.out.println(splitString[i]);
@@ -196,8 +150,8 @@ public class BorodkinDataParser {
 
 							element.appendChild(documents[num]
 									.createTextNode(line));
-//							element.appendChild(documents[num]
-//									.createTextNode("/n"));
+							// element.appendChild(documents[num]
+							// .createTextNode("/n"));
 							++i;
 						}
 					}

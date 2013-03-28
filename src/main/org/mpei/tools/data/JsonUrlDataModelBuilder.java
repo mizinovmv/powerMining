@@ -51,7 +51,7 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 		this.langEnum = lang;
 	}
 
-	public DataModel build(String path) {
+	public DataModel build(String path,int size) {
 		try {
 			String getClassResult = getUrlResult(path + "getClasses");
 			JsonParser parser = new JsonParser();
@@ -123,7 +123,7 @@ public class JsonUrlDataModelBuilder implements DataModelBuilder {
 		DataOutputStream out = null;
 		try {
 			DataModel model = builder
-					.build("https://classification-mizinov.rhcloud.com/api/");
+					.build("https://classification-mizinov.rhcloud.com/api/",0);
 			FileOutputStream fstream = new FileOutputStream(new File(
 					"dataModel"));
 			out = new DataOutputStream(fstream);

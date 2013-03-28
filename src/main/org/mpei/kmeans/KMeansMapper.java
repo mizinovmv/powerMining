@@ -41,17 +41,15 @@ import com.google.gson.internal.StringMap;
 
 public class KMeansMapper extends
 		Mapper<LongWritable, Document, Text, IntWritable> {
-	private static final Logger LOG = LoggerFactory.getLogger(KMeansMapper.class);
+	private static final Logger LOG = LoggerFactory
+			.getLogger(KMeansMapper.class);
 	static final IntWritable ONE = new IntWritable(1);
-	private static Map<String, Vector> means;
-	private static Dictionary dictionary = new Dictionary();
+	private Map<String, Vector> means;
+	private Dictionary dictionary = new Dictionary();
 
 	@Override
 	protected void setup(Context context) throws IOException,
 			InterruptedException {
-		if (means != null && dictionary.getAll().size() != 0) {
-			return;
-		}
 		Path[] cacheFiles = DistributedCache.getLocalCacheFiles(context
 				.getConfiguration());
 		if (null != cacheFiles && cacheFiles.length > 0) {
@@ -59,7 +57,10 @@ public class KMeansMapper extends
 				if (cachePath.toString().contains(
 						context.getConfiguration()
 								.get(KMeansDriver.TOKEN_CASHE))) {
-					dictionary.loadTokens(cachePath, KMeansDriver.loop);
+					String size = context.getConfiguration().get(
+							KMeansDriver.TOKEN_SIZE);
+					dictionary.loadTokens(cachePath.toUri(),
+							Integer.valueOf(size));
 				}
 			}
 			String name = context.getConfiguration().get(
@@ -67,7 +68,7 @@ public class KMeansMapper extends
 			for (Path cachePath : cacheFiles) {
 				String parentName = cachePath.getParent().getName();
 				if (parentName.equals(name)) {
-					loadCentroids(cachePath);
+					loadMeans(cachePath);
 				}
 			}
 		}
@@ -78,20 +79,8 @@ public class KMeansMapper extends
 		// calculate the distance for each centers of mass with the training
 		// data
 		context.setStatus(key.toString());
-
-		StringMap<Double> map = (StringMap<Double>) value.getContext();
-		Vector v = new DenseVector(dictionary.getAll().size());
-		for (Map.Entry<String, Double> entry : map.entrySet()) {
-			if (dictionary.get(value.getClassName()).contains(entry.getKey())) {
-				int index = dictionary.get(value.getClassName()).indexOf(
-						entry.getKey());
-				if (index >= dictionary.getAll().size()) {
-					continue;
-				}
-				v.set(dictionary.get(value.getClassName()).indexOf(
-						entry.getKey()), entry.getValue());
-			}
-		}
+		double[] docV = DocumentFabric.getTokensFreq(value, dictionary);
+		Vector v = new DenseVector(docV);
 		// find the nearst center of mass O(k)
 		double mL = Double.valueOf(context.getConfiguration().get(
 				KMeansDriver.METRIC));
@@ -108,17 +97,20 @@ public class KMeansMapper extends
 
 		if (nearest.compareTo(value.getClassName()) == 0) {
 			context.write(new Text("true"), ONE);
-//			LOG.info("true");
+			// LOG.info("true");
 		} else {
 			context.write(new Text("false"), ONE);
-//			LOG.info("false");
+			// LOG.info("false");
 		}
 	}
 
-	void loadCentroids(Path cachePath) throws IOException {
+	void loadMeans(Path cachePath) throws IOException {
 		BufferedReader reader = new BufferedReader(new FileReader(
 				cachePath.toString()));
 		try {
+			if (means != null) {
+				return;
+			}
 			String line = null;
 			means = new HashMap<String, Vector>();
 			Document mean = null;

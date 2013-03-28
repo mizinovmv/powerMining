@@ -53,21 +53,25 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 	 * @param path
 	 *            directory with xml files
 	 */
-	public DataModel build(String path) {
+	public DataModel build(String path, int size) {
 		try {
 			File files = getPath(path);
-			File[] listFile = files.listFiles();
-			String[] labels = new String[files.list().length];
-			int i = 0;
-
+			if (size == 0) {
+				size = files.list().length;
+			}
+			File[] listFile = new File[size];
+			for (int i = 0; i < size; ++i) {
+				listFile[i] = files.listFiles()[i];
+			}
+			String[] labels = new String[listFile.length];
 			Pattern pattern = Pattern.compile(XML_REGEX);
-			for (String nameLabel : files.list()) {
-				Matcher m = pattern.matcher(nameLabel);
+			int i = 0;
+			for (File nameLabel : listFile) {
+				Matcher m = pattern.matcher(nameLabel.getName());
 				if (m.matches()) {
 					labels[i] = m.group(1);
 					++i;
 				}
-
 			}
 			model = new DataModel(labels);
 			ExecutorService executor = Executors
@@ -163,8 +167,8 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 				}
 				org.mpei.data.document.Document[] a = new org.mpei.data.document.Document[docs
 						.size()];
-				
-					model.addDocuments(className, docs.toArray(a));
+
+				model.addDocuments(className, docs.toArray(a));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -186,8 +190,8 @@ public class XmlDataModelBuilder implements DataModelBuilder {
 		XmlDataModelBuilder builder = new XmlDataModelBuilder();
 		DataOutputStream out = null;
 		try {
-			DataModel model = builder
-					.build("/home/work/git/powerMining/coolga");
+			DataModel model = builder.build(
+					"/home/work/git/powerMining/coolga", 0);
 			FileOutputStream fstream = new FileOutputStream(new File(
 					"dataModel"));
 			out = new DataOutputStream(fstream);
